@@ -25,7 +25,7 @@ type Family = internal.Family
 
 type ConnID = internal.ConnID
 
-type Option = internal.StackOption
+type Option = internal.Option
 type ImplOption = internal.ImplOption
 
 type Stack struct {
@@ -101,7 +101,7 @@ func (i *_Impl) ImplOption() internal.ImplOption {
 	return i.i.Option
 }
 
-func (i *_Impl) StackOption() internal.StackOption {
+func (i *_Impl) StackOption() internal.Option {
 	return i.stack.option
 }
 

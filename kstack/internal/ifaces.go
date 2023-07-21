@@ -88,13 +88,13 @@ type TrManager interface {
 	Dial(ctx context.Context, addr IAddr, failFast bool) (tr TrackedTransport, err error)
 }
 
-type StackOption struct {
+type Option struct {
 	RemoteConns chan<- IConn
 }
 
 type Impl interface {
 	Dialer() IDialer
-	StackOption() StackOption
+	StackOption() Option
 	ImplOption() ImplOption
 	ConnManager() ConnManager
 	TrManager() TrManager
