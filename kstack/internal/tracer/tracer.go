@@ -1,7 +1,6 @@
 package tracer
 
 import (
-	"fmt"
 	"ktest"
 	"testing"
 	"time"
@@ -16,6 +15,7 @@ type _Tracer struct {
 }
 
 var T *_Tracer
+var expected *_Tracer
 
 type Type = _Tracer
 
@@ -38,12 +38,18 @@ func Wait(t *testing.T) {
 		select {
 		case <-T.waitCh:
 		case <-time.After(timeout):
-			panic(fmt.Sprintf("%#v", T))
+			panic(ktest.ReportTracer(T, expected))
 		}
 	}
 }
 
-func Expect(expected _Tracer) {
-	*T = expected
-	T.waitCh = ktest.ResetTracker(T)
+func Expect(t _Tracer) chainer {
+	*T = t
+	expected = &t
+	T.waitCh = ktest.ResetTracer(T)
+	return chainer{}
 }
+
+type chainer struct{}
+
+func (chainer) Wait(t *testing.T) { Wait(t) }
