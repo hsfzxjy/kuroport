@@ -12,10 +12,8 @@ type _Tracked struct {
 	smuxSession *smux.Session
 }
 
-func newTracked(impl internal.Impl, itr internal.ITransport, isRemote bool, disposeSelf ku.F) (_Tracked, error) {
+func newTracked(impl internal.Impl, itr internal.ITransport, isRemote bool, disposeSelf ku.F) (tr _Tracked, err error) {
 	var session *smux.Session
-	var tr _Tracked
-	var err error
 	if isRemote {
 		session, err = smux.Server(itr, nil)
 	} else {

@@ -45,7 +45,7 @@ func (s *_Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast boo
 		}
 
 		if s.call == nil {
-			panic("_TrSlot: call is nil in ResolveCall()")
+			panic("_Slot: call is nil in ResolveCall()")
 		}
 		s.call = nil
 
