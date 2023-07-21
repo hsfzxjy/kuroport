@@ -12,13 +12,13 @@ import (
 	"github.com/puzpuzpuz/xsync/v2"
 )
 
-type _TrManager struct {
+type _Manager struct {
 	impl internal.Impl
 	m    *xsync.MapOf[ku.Hash, slot.ISlot]
 }
 
-func NewManager(impl internal.Impl) *_TrManager {
-	return &_TrManager{
+func NewManager(impl internal.Impl) *_Manager {
+	return &_Manager{
 		impl,
 		xsync.NewTypedMapOf[ku.Hash, slot.ISlot](func(s maphash.Seed, k ku.Hash) uint64 {
 			return k.Uint64()
@@ -26,7 +26,7 @@ func NewManager(impl internal.Impl) *_TrManager {
 	}
 }
 
-func (m *_TrManager) slotDisposer(addrHash ku.Hash) ku.F {
+func (m *_Manager) slotDisposer(addrHash ku.Hash) ku.F {
 	return func() {
 		if tracer.Enabled {
 			tracer.T.TrSlotDeleted.Add()
@@ -35,7 +35,7 @@ func (m *_TrManager) slotDisposer(addrHash ku.Hash) ku.F {
 	}
 }
 
-func (m *_TrManager) TrackRemote(itr internal.ITransport) (tr internal.TrackedTransport, err error) {
+func (m *_Manager) TrackRemote(itr internal.ITransport) (tr internal.TrackedTransport, err error) {
 	hash := itr.Addr().Hash()
 	m.m.Compute(hash, func(s slot.ISlot, loaded bool) (slot.ISlot, bool) {
 		if !loaded {
@@ -49,7 +49,7 @@ func (m *_TrManager) TrackRemote(itr internal.ITransport) (tr internal.TrackedTr
 
 var ErrTryAgain = errors.New("kstack: transports reach max capacity")
 
-func (m *_TrManager) Dial(ctx context.Context, addr internal.IAddr, failFast bool) (tr internal.TrackedTransport, err error) {
+func (m *_Manager) Dial(ctx context.Context, addr internal.IAddr, failFast bool) (tr internal.TrackedTransport, err error) {
 	dialer := m.impl.Dialer()
 
 	hash := addr.Hash()

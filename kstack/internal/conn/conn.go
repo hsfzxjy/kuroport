@@ -7,18 +7,18 @@ import (
 	"github.com/hsfzxjy/smux"
 )
 
-type _SmuxStreamConn struct {
+type _MuxedConn struct {
 	*smux.Stream
 	id  internal.ConnID
 	itr internal.ITransport
 }
 
-func newSmuxStreamConn(
+func newMuxedConn(
 	id internal.ConnID,
 	itr internal.ITransport,
 	stream *smux.Stream,
-	disposeSelf ku.F) *_SmuxStreamConn {
-	c := new(_SmuxStreamConn)
+	disposeSelf ku.F) *_MuxedConn {
+	c := new(_MuxedConn)
 	c.Stream = stream
 	c.id = id
 	c.itr = itr
@@ -26,39 +26,39 @@ func newSmuxStreamConn(
 	return c
 }
 
-func (c *_SmuxStreamConn) Transport() internal.ITransport {
+func (c *_MuxedConn) Transport() internal.ITransport {
 	return c.itr
 }
 
-func (c *_SmuxStreamConn) ID() internal.ConnID {
+func (c *_MuxedConn) ID() internal.ConnID {
 	return c.id
 }
 
-func (c *_SmuxStreamConn) runLoop(disposeSelf ku.F) {
+func (c *_MuxedConn) runLoop(disposeSelf ku.F) {
 	<-c.Stream.GetDieCh()
 	disposeSelf.Do()
 }
 
-type _TrConn struct {
+type _Conn struct {
 	id internal.ConnID
 	internal.ITransport
 }
 
-func newTrConn(id internal.ConnID, itr internal.ITransport, disposeSelf ku.F) *_TrConn {
-	c := &_TrConn{id, itr}
+func newConn(id internal.ConnID, itr internal.ITransport, disposeSelf ku.F) *_Conn {
+	c := &_Conn{id, itr}
 	go c.runLoop(disposeSelf)
 	return c
 }
 
-func (c *_TrConn) runLoop(disposeSelf ku.F) {
+func (c *_Conn) runLoop(disposeSelf ku.F) {
 	<-c.DiedCh()
 	disposeSelf.Do()
 }
 
-func (c *_TrConn) ID() internal.ConnID {
+func (c *_Conn) ID() internal.ConnID {
 	return c.id
 }
 
-func (c *_TrConn) Transport() internal.ITransport {
+func (c *_Conn) Transport() internal.ITransport {
 	return c.ITransport
 }

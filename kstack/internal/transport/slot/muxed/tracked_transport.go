@@ -7,14 +7,14 @@ import (
 	"github.com/hsfzxjy/smux"
 )
 
-type _TrackedTransport struct {
+type _Tracked struct {
 	iface       internal.ITransport
 	smuxSession *smux.Session
 }
 
-func newTracked(impl internal.Impl, itr internal.ITransport, isRemote bool, disposeSelf ku.F) (_TrackedTransport, error) {
+func newTracked(impl internal.Impl, itr internal.ITransport, isRemote bool, disposeSelf ku.F) (_Tracked, error) {
 	var session *smux.Session
-	var tr _TrackedTransport
+	var tr _Tracked
 	var err error
 	if isRemote {
 		session, err = smux.Server(itr, nil)
@@ -23,20 +23,20 @@ func newTracked(impl internal.Impl, itr internal.ITransport, isRemote bool, disp
 	}
 
 	if err != nil {
-		return _TrackedTransport{}, err
+		return _Tracked{}, err
 	}
 
-	tr = _TrackedTransport{itr, session}
+	tr = _Tracked{itr, session}
 	go tr.runLoop(impl, disposeSelf)
 
 	return tr, nil
 }
 
-func (tr _TrackedTransport) IsZero() bool {
+func (tr _Tracked) IsZero() bool {
 	return tr.iface == nil
 }
 
-func (tr _TrackedTransport) Open(impl internal.Impl) (internal.IConn, error) {
+func (tr _Tracked) Open(impl internal.Impl) (internal.IConn, error) {
 	stream, err := tr.smuxSession.OpenStream()
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (tr _TrackedTransport) Open(impl internal.Impl) (internal.IConn, error) {
 	return impl.ConnManager().Track(tr.iface, stream, false)
 }
 
-func (tr _TrackedTransport) runLoop(impl internal.Impl, disposeSelf ku.F) {
+func (tr _Tracked) runLoop(impl internal.Impl, disposeSelf ku.F) {
 	if tr.smuxSession != nil {
 		defer tr.smuxSession.Close()
 		for {

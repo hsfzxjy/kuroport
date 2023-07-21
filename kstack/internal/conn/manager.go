@@ -62,9 +62,9 @@ func (m *_Manager) Track(itr internal.ITransport, stream *smux.Stream, isRemote 
 			}
 
 			if stream == nil {
-				c = newTrConn(id, itr, disposeConn)
+				c = newConn(id, itr, disposeConn)
 			} else {
-				c = newSmuxStreamConn(id, itr, stream, disposeConn)
+				c = newMuxedConn(id, itr, stream, disposeConn)
 			}
 			return c, false
 		})

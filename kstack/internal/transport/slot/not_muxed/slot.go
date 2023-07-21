@@ -58,9 +58,9 @@ func (s *_Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast boo
 	}
 }
 
-func (s *_Slot) trackLocked(itr internal.ITransport, isRemote bool) (*_TrackedTransport, error) {
+func (s *_Slot) trackLocked(itr internal.ITransport, isRemote bool) (*_Tracked, error) {
 	s.nAliveTrs++
-	return newTrackedTrNotMuxed(s.impl, itr, isRemote, func() {
+	return newTracked(s.impl, itr, isRemote, func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.nAliveTrs--

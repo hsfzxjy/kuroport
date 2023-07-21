@@ -11,7 +11,7 @@ type _Slot struct {
 	disposeSelf ku.F
 
 	mu   sync.Mutex
-	trs  ku.List[_TrackedTransport]
+	trs  ku.List[_Tracked]
 	call *ku.Call[internal.TrackedTransport]
 }
 
