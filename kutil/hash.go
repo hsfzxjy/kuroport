@@ -6,7 +6,6 @@ import (
 	"go4.org/intern"
 )
 
-
 type Hash struct{ v *intern.Value }
 
 func (h Hash) Uint64() uint64 {
