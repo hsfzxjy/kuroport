@@ -112,17 +112,14 @@ func (s *testCallbacks) do(ctx context.Context, option *option) (err error) {
 	return
 }
 
-// OnServiceStart implements kservice._ICallbacks.
 func (s *testCallbacks) OnServiceStart(ctx context.Context) (err error) {
 	return s.do(ctx, &s.startOption)
 }
 
-// OnServiceRun implements kservice._ICallbacks.
 func (s *testCallbacks) OnServiceRun(ctx context.Context) (err error) {
 	return s.do(ctx, &s.runOption)
 }
 
-// OnServiceStop implements kservice._ICallbacks.
 func (s *testCallbacks) OnServiceStop() {
 	if ddlCancel, ok := s.timerCancel.Load().(context.CancelFunc); ok {
 		ddlCancel()
