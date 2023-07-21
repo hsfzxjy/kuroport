@@ -45,15 +45,13 @@ func (tr _Tracked) Open(impl internal.Impl) (internal.IConn, error) {
 }
 
 func (tr _Tracked) runLoop(impl internal.Impl, disposeSelf ku.F) {
-	if tr.smuxSession != nil {
-		defer tr.smuxSession.Close()
-		for {
-			stream, err := tr.smuxSession.AcceptStream()
-			if err != nil {
-				break
-			}
-			impl.ConnManager().Track(tr.iface, stream, true)
+	defer tr.smuxSession.Close()
+	for {
+		stream, err := tr.smuxSession.AcceptStream()
+		if err != nil {
+			break
 		}
+		impl.ConnManager().Track(tr.iface, stream, true)
 	}
 	<-tr.iface.DiedCh()
 	disposeSelf.Do()
