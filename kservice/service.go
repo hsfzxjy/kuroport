@@ -7,6 +7,13 @@ import (
 	"github.com/hsfzxjy/pipe"
 )
 
+type IService interface {
+	Start()
+	Stop()
+	Toggle()
+	Events() pipe.ListenableCM[Event]
+}
+
 type Service struct {
 	callbacks _ICallbacks
 	events    *pipe.ControllerCM[Event]
