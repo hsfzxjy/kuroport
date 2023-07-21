@@ -22,18 +22,18 @@ func (c *Counter) Add() {
 	asWaitGroup(c).Done()
 }
 
-func ResetTracker(tracker any) <-chan struct{} {
-	trackerV := reflect.ValueOf(tracker)
-	trackerT := reflect.TypeOf(tracker).Elem()
+func ResetTracer(tracer any) <-chan struct{} {
+	tracerV := reflect.ValueOf(tracer)
+	tracerT := reflect.TypeOf(tracer).Elem()
 
-	trackerPtr := trackerV.UnsafePointer()
+	tracerPtr := tracerV.UnsafePointer()
 
 	var wgs []*sync.WaitGroup
 
-	for i := 0; i < trackerT.NumField(); i++ {
-		f := trackerT.Field(i)
+	for i := 0; i < tracerT.NumField(); i++ {
+		f := tracerT.Field(i)
 		if f.Type.PkgPath() == "ktest" && f.Type.Name() == "Counter" {
-			c := (*Counter)(unsafe.Add(trackerPtr, f.Offset))
+			c := (*Counter)(unsafe.Add(tracerPtr, f.Offset))
 			c.expect()
 			wg := asWaitGroup(c)
 			wgs = append(wgs, wg)
