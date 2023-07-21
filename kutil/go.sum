@@ -1,0 +1,4 @@
+go4.org/intern v0.0.0-20230525184215-6c62f75575cb h1:ae7kzL5Cfdmcecbh22ll7lYP3iuUdnfnhiPcSaDgH/8=
+go4.org/intern v0.0.0-20230525184215-6c62f75575cb/go.mod h1:Ycrt6raEcnF5FTsLiLKkhBTO6DPX3RCUCUVnks3gFJU=
+go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 h1:WJhcL4p+YeDxmZWg141nRm7XC8IDmhz7lk5GpadO1Sg=
+go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2/go.mod h1:FftLjUGFEDu5k8lt0ddY+HcrH/qU/0qk+H8j9/nTl3E=
