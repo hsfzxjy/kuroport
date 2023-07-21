@@ -1,6 +1,9 @@
 package ku
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type Awaiter[T any] func() (T, error)
 
@@ -19,8 +22,9 @@ type Call[R any] struct {
 	result R
 	err    error
 
-	wg   sync.WaitGroup
-	once sync.Once
+	wg     sync.WaitGroup
+	once   sync.Once
+	shared atomic.Bool
 }
 
 func NewCall[R any]() *Call[R] {
@@ -42,6 +46,16 @@ func (c *Call[R]) DoOrGet(f Awaiter[R]) (R, error) {
 }
 
 func (c *Call[R]) WaitAndGet() (R, error) {
+	c.shared.Store(true)
 	c.wg.Wait()
 	return c.result, c.err
+}
+
+func (c *Call[R]) WaitAndGetAsync() Awaiter[R] {
+	c.shared.Store(true)
+	return c.WaitAndGet
+}
+
+func (c *Call[R]) Shared() bool {
+	return c.shared.Load()
 }
