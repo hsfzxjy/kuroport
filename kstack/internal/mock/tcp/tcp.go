@@ -1,4 +1,4 @@
-package mock_tcp
+package mocktcp
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	ku "kutil"
 	"net"
 	"sync/atomic"
+	"time"
 )
 
 type _Addr struct {
@@ -31,6 +32,7 @@ func (a _Addr) Addr() kstack.IAddr {
 }
 
 var Addr _Addr
+var AddrBad _Addr
 
 func init() {
 	tcpAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:18888")
@@ -55,11 +57,7 @@ func (l *_Listener) AcceptTransport(ch chan<- kstack.ITransport) {
 }
 
 func (l *_Listener) OnServiceRun(ctx context.Context) (err error) {
-	ln, err := net.ListenTCP("tcp", Addr.TCPAddr)
-	if err != nil {
-		return err
-	}
-	l.ln.Store(ln)
+	ln := l.ln.Load()
 	select {
 	case <-ctx.Done():
 		ln.Close()
@@ -75,7 +73,12 @@ func (l *_Listener) OnServiceRun(ctx context.Context) (err error) {
 	}
 }
 
-func (*_Listener) OnServiceStart(ctx context.Context) (err error) {
+func (l *_Listener) OnServiceStart(ctx context.Context) (err error) {
+	ln, err := net.ListenTCP("tcp", Addr.TCPAddr)
+	if err != nil {
+		return err
+	}
+	l.ln.Store(ln)
 	return nil
 }
 
@@ -99,6 +102,28 @@ func Dialer() _Dialer {
 }
 
 func (_Dialer) DialAddr(ctx context.Context, addr kstack.IAddr) (kstack.ITransport, error) {
+	c, err := net.DialTCP("tcp", nil, addr.(_Addr).TCPAddr)
+	if err != nil {
+		return nil, err
+	}
+	return newTransport(c), nil
+}
+
+type _DelayedDialer struct {
+	duration time.Duration
+}
+
+func DelayedDialer(delay time.Duration) _DelayedDialer {
+	return _DelayedDialer{delay}
+}
+func (d _DelayedDialer) DialAddr(ctx context.Context, addr kstack.IAddr) (kstack.ITransport, error) {
+	timer := time.NewTimer(d.duration)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-timer.C:
+	}
 	c, err := net.DialTCP("tcp", nil, addr.(_Addr).TCPAddr)
 	if err != nil {
 		return nil, err
