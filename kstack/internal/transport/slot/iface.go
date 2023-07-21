@@ -13,6 +13,7 @@ type ISlot interface {
 		dialF ku.Awaiter[internal.ITransport],
 		failFast bool,
 	) ku.Awaiter[internal.TrackedTransport]
+	TryDispose()
 }
 
 func New(impl internal.Impl, disposeSelf ku.F) ISlot {

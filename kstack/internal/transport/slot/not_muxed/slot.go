@@ -51,6 +51,9 @@ func (s *_Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast boo
 		s.nDialing--
 
 		if err != nil {
+			if s.isEmptyLocked() {
+				s.disposeSelf()
+			}
 			return nil, err
 		}
 
@@ -68,6 +71,14 @@ func (s *_Slot) trackLocked(itr internal.ITransport, isRemote bool) (*_Tracked, 
 			s.disposeSelf()
 		}
 	})
+}
+
+func (s *_Slot) TryDispose() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.isEmptyLocked() {
+		s.disposeSelf()
+	}
 }
 
 func (s *_Slot) isEmptyLocked() bool {

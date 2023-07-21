@@ -26,7 +26,7 @@ func (s *_Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast boo
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.call != nil {
-		return s.call.WaitAndGet
+		return s.call.WaitAndGetAsync()
 	}
 	if tr, ok := s.trs.Get(); ok {
 		return ku.Resolve[internal.TrackedTransport](tr)
@@ -44,10 +44,15 @@ func (s *_Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast boo
 			tr, err = s.trackLocked(itr, false)
 		}
 
-		if s.call == nil {
+		call := s.call
+		if call == nil {
 			panic("_Slot: call is nil in ResolveCall()")
 		}
 		s.call = nil
+
+		if !call.Shared() && s.isEmptyLocked() {
+			s.disposeSelf()
+		}
 
 		return tr, err
 	})
@@ -80,6 +85,14 @@ func (s *_Slot) Track(itr internal.ITransport, isRemote bool) (internal.TrackedT
 	defer s.mu.Unlock()
 
 	return s.trackLocked(itr, isRemote)
+}
+
+func (s *_Slot) TryDispose() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.isEmptyLocked() {
+		s.disposeSelf()
+	}
 }
 
 func (s *_Slot) isEmptyLocked() bool {

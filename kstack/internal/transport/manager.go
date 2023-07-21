@@ -54,18 +54,25 @@ func (m *_Manager) Dial(ctx context.Context, addr internal.IAddr, failFast bool)
 
 	hash := addr.Hash()
 
+	var loadedSlot slot.ISlot
 COMPUTE:
 	select {
 	case <-ctx.Done():
+		if loadedSlot != nil {
+			loadedSlot.TryDispose()
+		}
 		return nil, ctx.Err()
 	default:
 	}
 	var awaiter ku.Awaiter[internal.TrackedTransport]
+	var dialedByThisCall = false
 	m.m.Compute(hash, func(s slot.ISlot, loaded bool) (slot.ISlot, bool) {
 		if !loaded {
 			s = slot.New(m.impl, m.slotDisposer(hash))
 		}
+		loadedSlot = s
 		awaiter = s.DialAndTrack(func() (internal.ITransport, error) {
+			dialedByThisCall = true
 			return dialer.DialAddr(ctx, addr)
 		}, failFast)
 		return s, false
@@ -73,6 +80,9 @@ COMPUTE:
 	tr, err = awaiter()
 	if err == nil {
 		return tr, nil
+	}
+	if dialedByThisCall {
+		return nil, err
 	}
 	goto COMPUTE
 }
