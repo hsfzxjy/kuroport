@@ -1,7 +1,8 @@
-package kstack_test
+package mock
 
 import (
 	"kstack"
+	"kstack/internal"
 	ku "kutil"
 )
 
@@ -16,8 +17,8 @@ type stackBuilder struct {
 }
 
 func (b stackBuilder) Impl(impl kstack.Impl) stackBuilder {
-	impl.Family = kstack.TestFamily
-	b.s.RegisterImpl(impl)
+	impl.Family = internal.TestFamily
+	b.s.Register(impl)
 	if impl.Listener != nil {
 		b.start = b.start.With(func() { impl.Listener.Start() })
 		b.s.Disposer = b.s.Disposer.With(func() { impl.Listener.Stop() })

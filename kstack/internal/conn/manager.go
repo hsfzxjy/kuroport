@@ -1,39 +1,41 @@
-package kstack
+package conn
 
 import (
 	"errors"
+	"kstack/internal"
+	"kstack/internal/tracer"
 	"sync/atomic"
 
 	"github.com/hsfzxjy/smux"
 	"github.com/puzpuzpuz/xsync/v2"
 )
 
-type _ConnManager struct {
-	impl *Impl
-	m    *xsync.MapOf[ConnID, IConn]
+type _Manager struct {
+	impl internal.Impl
+	m    *xsync.MapOf[internal.ConnID, internal.IConn]
 
 	nextId atomic.Uint64
 }
 
-func newConnManager(impl *Impl) *_ConnManager {
-	m := new(_ConnManager)
+func NewManager(impl internal.Impl) *_Manager {
+	m := new(_Manager)
 	m.impl = impl
-	m.m = xsync.NewIntegerMapOf[ConnID, IConn]()
+	m.m = xsync.NewIntegerMapOf[internal.ConnID, internal.IConn]()
 	return m
 }
 
 var ErrStackWontAcceptConn = errors.New("kstack: stack won't accept conn, specify non-nil RemoteConns to fix")
 
-func (m *_ConnManager) Track(itr ITransport, stream *smux.Stream, isRemote bool) (IConn, error) {
-	var c IConn
+func (m *_Manager) Track(itr internal.ITransport, stream *smux.Stream, isRemote bool) (internal.IConn, error) {
+	var c internal.IConn
 
-	if !m.impl.Option.Mux {
+	if !m.impl.ImplOption().Mux {
 		if stream != nil {
 			panic("kstack: stream must be nil")
 		}
 	}
 
-	if isRemote && m.impl.stack.option.RemoteConns == nil {
+	if isRemote && m.impl.StackOption().RemoteConns == nil {
 		if stream != nil {
 			stream.Close()
 		}
@@ -41,11 +43,11 @@ func (m *_ConnManager) Track(itr ITransport, stream *smux.Stream, isRemote bool)
 	}
 
 	var idOk bool
-	var id ConnID
+	var id internal.ConnID
 	for !idOk {
 		nextId := m.nextId.Add(1)
-		id = ConnID(nextId)
-		m.m.Compute(id, func(conn IConn, loaded bool) (_ IConn, delete bool) {
+		id = internal.ConnID(nextId)
+		m.m.Compute(id, func(conn internal.IConn, loaded bool) (_ internal.IConn, delete bool) {
 			if loaded {
 				idOk = false
 				return conn, false
@@ -53,8 +55,8 @@ func (m *_ConnManager) Track(itr ITransport, stream *smux.Stream, isRemote bool)
 			idOk = true
 
 			disposeConn := func() {
-				if _Tracking {
-					tracker.ConnDeleted.Add()
+				if tracer.Enabled {
+					tracer.T.ConnDeleted.Add()
 				}
 				m.m.Delete(id)
 			}
@@ -69,7 +71,7 @@ func (m *_ConnManager) Track(itr ITransport, stream *smux.Stream, isRemote bool)
 	}
 
 	if isRemote {
-		m.impl.stack.option.RemoteConns <- c
+		m.impl.StackOption().RemoteConns <- c
 	}
 
 	return c, nil

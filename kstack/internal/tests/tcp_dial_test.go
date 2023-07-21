@@ -3,32 +3,34 @@ package kstack_test
 import (
 	"context"
 	"kstack"
+	"kstack/internal/tests/mock"
+	mock_tcp "kstack/internal/tests/mock/tcp"
+	"kstack/internal/tracer"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestTcpDial(t *testing.T) {
-	kstack.Tracker.Reset(kstack.TrackerValue{
-		TrDeleted:   2,
-		ConnDeleted: 2,
+	tracer.Expect(tracer.Type{
+		TrSlotDeleted: 2,
+		ConnDeleted:   2,
 	})
-	defer kstack.Tracker.Wait(t, 0)
+	defer tracer.Wait(t)
 	connCh := make(chan kstack.IConn, 2)
-	server := Stack(kstack.Option{connCh}).
+	server := mock.Stack(kstack.Option{RemoteConns: connCh}).
 		Impl(kstack.Impl{
-			Listener: newTestTcpListener(),
+			Listener: mock_tcp.Listener(),
 			Option:   kstack.ImplOption{Mux: true}}).
 		Build()
 	defer server.Disposer.Do()
-	client := Stack(kstack.Option{}).
+	client := mock.Stack(kstack.Option{}).
 		Impl(kstack.Impl{
-			Dialer: _TestTcpDialer{},
+			Dialer: mock_tcp.Dialer(),
 			Option: kstack.ImplOption{Mux: true}}).
 		Build()
 	defer client.Disposer.Do()
-	clientConn, err := client.DialAddr(context.Background(), testTcpAddr, false)
+	clientConn, err := client.DialAddr(context.Background(), mock_tcp.Addr, false)
 	require.ErrorIs(t, err, nil)
 	defer clientConn.Transport().Close()
 	serverConn, ok := <-connCh
@@ -37,25 +39,25 @@ func TestTcpDial(t *testing.T) {
 }
 
 func TestTcpDialNoMux(t *testing.T) {
-	kstack.Tracker.Reset(kstack.TrackerValue{
-		TrDeleted:   2,
-		ConnDeleted: 2,
+	tracer.Expect(tracer.Type{
+		TrSlotDeleted: 2,
+		ConnDeleted:   2,
 	})
-	defer kstack.Tracker.Wait(t, 500*time.Millisecond)
+	defer tracer.Wait(t)
 	connCh := make(chan kstack.IConn, 2)
-	server := Stack(kstack.Option{connCh}).
+	server := mock.Stack(kstack.Option{RemoteConns: connCh}).
 		Impl(kstack.Impl{
-			Listener: newTestTcpListener(),
+			Listener: mock_tcp.Listener(),
 			Option:   kstack.ImplOption{Mux: false}}).
 		Build()
 	defer server.Disposer.Do()
-	client := Stack(kstack.Option{}).
+	client := mock.Stack(kstack.Option{}).
 		Impl(kstack.Impl{
-			Dialer: _TestTcpDialer{},
+			Dialer: mock_tcp.Dialer(),
 			Option: kstack.ImplOption{Mux: false}}).
 		Build()
 	defer client.Disposer.Do()
-	clientConn, err := client.DialAddr(context.Background(), testTcpAddr, false)
+	clientConn, err := client.DialAddr(context.Background(), mock_tcp.Addr, false)
 	require.ErrorIs(t, err, nil)
 	defer clientConn.Close()
 	serverConn, ok := <-connCh

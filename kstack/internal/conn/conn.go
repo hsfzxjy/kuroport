@@ -1,33 +1,21 @@
-package kstack
+package conn
 
 import (
-	"io"
+	"kstack/internal"
 	ku "kutil"
-	"time"
 
 	"github.com/hsfzxjy/smux"
 )
 
-type IConn interface {
-	io.ReadWriteCloser
-	ID() ConnID
-	Transport() ITransport
-	SetDeadline(time.Time) error
-	SetReadDeadline(time.Time) error
-	SetWriteDeadline(time.Time) error
-}
-
-type ConnID uint64
-
 type _SmuxStreamConn struct {
 	*smux.Stream
-	id  ConnID
-	itr ITransport
+	id  internal.ConnID
+	itr internal.ITransport
 }
 
 func newSmuxStreamConn(
-	id ConnID,
-	itr ITransport,
+	id internal.ConnID,
+	itr internal.ITransport,
 	stream *smux.Stream,
 	disposeSelf ku.F) *_SmuxStreamConn {
 	c := new(_SmuxStreamConn)
@@ -38,11 +26,11 @@ func newSmuxStreamConn(
 	return c
 }
 
-func (c *_SmuxStreamConn) Transport() ITransport {
+func (c *_SmuxStreamConn) Transport() internal.ITransport {
 	return c.itr
 }
 
-func (c *_SmuxStreamConn) ID() ConnID {
+func (c *_SmuxStreamConn) ID() internal.ConnID {
 	return c.id
 }
 
@@ -52,11 +40,11 @@ func (c *_SmuxStreamConn) runLoop(disposeSelf ku.F) {
 }
 
 type _TrConn struct {
-	id ConnID
-	ITransport
+	id internal.ConnID
+	internal.ITransport
 }
 
-func newTrConn(id ConnID, itr ITransport, disposeSelf ku.F) *_TrConn {
+func newTrConn(id internal.ConnID, itr internal.ITransport, disposeSelf ku.F) *_TrConn {
 	c := &_TrConn{id, itr}
 	go c.runLoop(disposeSelf)
 	return c
@@ -67,10 +55,10 @@ func (c *_TrConn) runLoop(disposeSelf ku.F) {
 	disposeSelf.Do()
 }
 
-func (c *_TrConn) ID() ConnID {
+func (c *_TrConn) ID() internal.ConnID {
 	return c.id
 }
 
-func (c *_TrConn) Transport() ITransport {
+func (c *_TrConn) Transport() internal.ITransport {
 	return c.ITransport
 }

@@ -2,60 +2,35 @@ package kstack
 
 import (
 	"context"
-	"kservice"
+	"kstack/internal"
+	"kstack/internal/conn"
+	"kstack/internal/transport"
 	"sync"
 )
 
-type Family int
+type IDialer = internal.IDialer
+type IListener = internal.IListener
+type IAdvertiser = internal.IAdvertiser
+type IScanner = internal.IScanner
 
-const (
-	BREDR Family = iota
-	BLE
-	INet
-	testFamily
-	maxFamily
-)
+type IIdentity = internal.IIdentity
+type IConn = internal.IConn
+type IAddr = internal.IAddr
 
-type IIdentity interface {
-	Hash() Hash
-	Devices() []IDevice
-}
+type ITransport = internal.ITransport
 
-type IDeviceID interface {
-	Hash() Hash
-	String() string
-	Family() Family
-}
+type IDevice = internal.IDevice
 
-type IDevice interface {
-	DeviceID() IDeviceID
-	Family() Family
-	Identity() IIdentity
-	Addrs() []IAddr
-	DialFunc() func(context.Context) (ITransport, error)
-}
+type Family = internal.Family
 
-type IListener interface {
-	kservice.IService
-	AcceptTransport(chan<- ITransport)
-}
+type ConnID = internal.ConnID
 
-type IScanner interface {
-	kservice.IService
-	AcceptDevice(chan<- IDevice)
-}
-
-type IDialer interface {
-	DialAddr(ctx context.Context, addr IAddr) (ITransport, error)
-}
-
-type IAdvertiser interface {
-	kservice.IService
-}
+type Option = internal.StackOption
+type ImplOption = internal.ImplOption
 
 type Stack struct {
 	option  Option
-	impls   [maxFamily]Impl
+	impls   [internal.MaxFamily]_Impl
 	runOnce sync.Once
 }
 
@@ -65,78 +40,101 @@ func New(option Option) *Stack {
 	return stack
 }
 
-func (s *Stack) getImpl(family Family) *Impl {
-	if family >= maxFamily {
+func (s *Stack) getImpl(family Family) *_Impl {
+	if family >= internal.MaxFamily {
 		return nil
 	}
 	return &s.impls[family]
 }
 
-func (s *Stack) RegisterImpl(impl Impl) {
-	family := impl.Family
-	oldImpl := s.getImpl(family)
-	if oldImpl.stack != nil {
-		panic("kstack: family has been registered")
-	}
-	*oldImpl = impl
-	oldImpl.stack = s
-	oldImpl.trManager = newTrManager(oldImpl)
-	oldImpl.connManager = newConnManager(oldImpl)
-}
-
 func (s *Stack) Run() {
 	s.runOnce.Do(func() {
 		var wg sync.WaitGroup
-		for i := Family(0); i < maxFamily; i++ {
+		for i := Family(0); i < internal.MaxFamily; i++ {
 			impl := &s.impls[i]
 			if impl.stack != nil {
 				wg.Add(1)
-				go impl.run(&wg)
+				go impl.Run(&wg)
 			}
 		}
 		wg.Wait()
 	})
 }
 
-type ImplOption struct {
-	Mux                 bool
-	TransportMaxTotal   uint
-	TransportMaxPerAddr uint
+func (s *Stack) Register(impl Impl) {
+	family := impl.Family
+	oldImpl := s.getImpl(family)
+	if oldImpl.stack != nil {
+		panic("kstack: family has been registered")
+	}
+	oldImpl.i = impl
+	oldImpl.stack = s
+	oldImpl.trManager = transport.NewManager(oldImpl)
+	oldImpl.connManager = conn.NewManager(oldImpl)
 }
 
 type Impl struct {
-	stack      *Stack
 	Family     Family
 	Option     ImplOption
 	Listener   IListener
 	Dialer     IDialer
 	Scanner    IScanner
 	Advertiser IAdvertiser
-
-	trManager   *_TrManager
-	connManager *_ConnManager
 }
 
-func (i *Impl) run(wg *sync.WaitGroup) {
-	var itrCh chan ITransport
-	if i.Listener != nil {
-		itrCh = make(chan ITransport, 1)
-		i.Listener.AcceptTransport(itrCh)
+type _Impl struct {
+	i           Impl
+	stack       *Stack
+	trManager   internal.TrManager
+	connManager internal.ConnManager
+}
+
+func (i *_Impl) ConnManager() internal.ConnManager {
+	return i.connManager
+}
+
+func (i *_Impl) Dialer() internal.IDialer {
+	return i.i.Dialer
+}
+
+func (i *_Impl) ImplOption() internal.ImplOption {
+	return i.i.Option
+}
+
+func (i *_Impl) StackOption() internal.StackOption {
+	return i.stack.option
+}
+
+func (i *_Impl) TrManager() internal.TrManager {
+	return i.trManager
+}
+
+func (i *_Impl) Run(wg *sync.WaitGroup) {
+	var itrCh chan internal.ITransport
+	if i.i.Listener != nil {
+		itrCh = make(chan internal.ITransport, 1)
+		i.i.Listener.AcceptTransport(itrCh)
 	}
 	wg.Done()
 	for {
 		select {
 		case itr := <-itrCh:
-			tr, err := i.trManager.Track(itr)
+			_, err := i.trManager.TrackRemote(itr)
 			if err != nil {
 				itr.Close()
 			}
-			if !i.Option.Mux {
-				conn, err := i.connManager.Track(tr.iface, nil, true)
-				if err != nil {
-					conn.Close()
-				}
-			}
 		}
 	}
+}
+
+func (s *Stack) DialAddr(ctx context.Context, addr IAddr, failFast bool) (IConn, error) {
+	impl := s.getImpl(addr.Family())
+	if impl == nil || impl.i.Dialer == nil {
+		return nil, ErrBadAddress
+	}
+	tr, err := impl.trManager.Dial(ctx, addr, failFast)
+	if err != nil {
+		return nil, err
+	}
+	return tr.Open(impl)
 }
