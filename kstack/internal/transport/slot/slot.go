@@ -12,7 +12,7 @@ type Slot struct {
 	impl        internal.Impl
 	disposeSelf ku.F
 
-	mu   sync.Mutex
+	mu   sync.RWMutex
 	cond sync.Cond
 
 	muxedTrs ku.List[muxed.Tracked]
@@ -30,7 +30,7 @@ func New(impl internal.Impl, disposeSelf ku.F) *Slot {
 	return s
 }
 
-func (s *Slot) nAliveTrsLocked() uint32 {
+func (s *Slot) nAliveTrsRLocked() uint32 {
 	return uint32(s.muxedTrs.ActiveCount()) + s.nNotMuxedTrs
 }
 
@@ -38,8 +38,8 @@ func (s *Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast bool
 	opt := s.impl.ImplOption()
 
 	if opt.Mux {
-		s.mu.Lock()
-		defer s.mu.Unlock()
+		s.mu.RLock()
+		defer s.mu.RUnlock()
 		if tr, ok := s.muxedTrs.Get(); ok {
 			return ku.Resolve[internal.TrackedTransport](tr)
 		}
@@ -87,7 +87,7 @@ func (s *Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast bool
 		s.cond.Signal()
 
 		if err != nil {
-			if s.isEmptyLocked() {
+			if s.isEmptyRLocked() {
 				s.disposeSelf()
 			}
 			return nil, err
@@ -103,7 +103,7 @@ func (s *Slot) trackMuxedLocked(itr internal.ITransport, isRemote bool) (interna
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.muxedTrs.Delete(index)
-		if s.isEmptyLocked() {
+		if s.isEmptyRLocked() {
 			s.disposeSelf()
 		}
 	})
@@ -123,7 +123,7 @@ func (s *Slot) trackNotMuxedLocked(itr internal.ITransport, isRemote bool) (inte
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.nNotMuxedTrs--
-		if s.isEmptyLocked() {
+		if s.isEmptyRLocked() {
 			s.disposeSelf()
 		}
 	})
@@ -131,7 +131,7 @@ func (s *Slot) trackNotMuxedLocked(itr internal.ITransport, isRemote bool) (inte
 
 func (s *Slot) trackLocked(itr internal.ITransport, isRemote bool) (internal.TrackedTransport, error) {
 	opt := s.impl.ImplOption()
-	if s.nAliveTrsLocked() >= opt.TransportPerAddrMaxAlive {
+	if s.nAliveTrsRLocked() >= opt.TransportPerAddrMaxAlive {
 		return nil, internal.ErrTryAgain
 	}
 
@@ -142,9 +142,8 @@ func (s *Slot) trackLocked(itr internal.ITransport, isRemote bool) (internal.Tra
 	}
 }
 
-
-func (s *Slot) isEmptyLocked() bool {
-	return s.nAliveTrsLocked() == 0 && s.nWaitingOrDialing == 0
+func (s *Slot) isEmptyRLocked() bool {
+	return s.nAliveTrsRLocked() == 0 && s.nWaitingOrDialing == 0
 }
 
 func (s *Slot) Track(itr internal.ITransport, isRemote bool) (internal.TrackedTransport, error) {
