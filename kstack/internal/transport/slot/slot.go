@@ -142,13 +142,6 @@ func (s *Slot) trackLocked(itr internal.ITransport, isRemote bool) (internal.Tra
 	}
 }
 
-func (s *Slot) TryDispose() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.isEmptyLocked() {
-		s.disposeSelf()
-	}
-}
 
 func (s *Slot) isEmptyLocked() bool {
 	return s.nAliveTrsLocked() == 0 && s.nWaitingOrDialing == 0
