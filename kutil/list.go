@@ -9,6 +9,10 @@ type List[E IsZeroer] struct {
 	container []E
 }
 
+func (l *List[E]) NActive() int {
+	return l.nActive
+}
+
 func (l *List[E]) Get() (item E, ok bool) {
 	if l.nActive == 0 {
 		return
