@@ -42,6 +42,30 @@ func TestTcpDial(t *testing.T) {
 	}
 }
 
+func TestTcpDial_NoMux(t *testing.T) {
+	for N := 1; N <= M; N++ {
+		t.Run(strconv.Itoa(N), func(t *testing.T) {
+			defer tracer.Expect(tracer.Type{
+				TrSlotDeleted: ktest.Counter(N + 1),
+				ConnDeleted:   ktest.Counter(2 * N)}).Wait(t)
+
+			cs := mock.ClientServer(
+				mocktcp.Listener(),
+				mocktcp.Dialer(),
+				kstack.ImplOption{Mux: false})
+			defer cs.Dispose()
+
+			clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
+
+			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
+			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
+
+			ku.Map(clientConns, kstack.IConn.Close)
+			ku.Map(serverConns, kstack.IConn.Close)
+		})
+	}
+}
+
 func TestTcpDial_Delayed(t *testing.T) {
 	const N = M
 	defer tracer.Expect(tracer.Type{
@@ -64,6 +88,30 @@ func TestTcpDial_Delayed(t *testing.T) {
 
 	clientConns[0].Transport().Close()
 	serverConns[0].Transport().Close()
+}
+
+func TestTcpDial_NoMux_Delayed(t *testing.T) {
+	for N := 1; N <= M; N++ {
+		t.Run(strconv.Itoa(N), func(t *testing.T) {
+			defer tracer.Expect(tracer.Type{
+				TrSlotDeleted: ktest.Counter(N + 1),
+				ConnDeleted:   ktest.Counter(2 * N)}).Wait(t)
+
+			cs := mock.ClientServer(
+				mocktcp.Listener(),
+				mocktcp.DelayedDialer(10*time.Millisecond),
+				kstack.ImplOption{Mux: false})
+			defer cs.Dispose()
+
+			clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
+
+			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
+			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
+
+			ku.Map(clientConns, kstack.IConn.Close)
+			ku.Map(serverConns, kstack.IConn.Close)
+		})
+	}
 }
 
 func TestTcpDial_Delayed_Error(t *testing.T) {
@@ -94,87 +142,6 @@ func TestTcpDial_Delayed_Error(t *testing.T) {
 	require.GreaterOrEqual(t, elapsedTime, delay*N)
 }
 
-func TestTcpDial_Delayed_Error_CancelWaiter(t *testing.T) {
-	defer tracer.Expect(tracer.Type{
-		TrSlotDeleted: 1,
-		ConnDeleted:   0}).Wait(t)
-
-	delay := 10 * time.Millisecond
-	cs := mock.ClientServer(
-		mocktcp.Listener(),
-		mocktcp.DelayedDialer(delay),
-		kstack.ImplOption{Mux: true})
-	defer cs.Dispose()
-
-	done := make(chan struct{})
-	go func() {
-		close(done)
-		_, err := cs.C.DialAddr(context.Background(), mocktcp.AddrBad, false)
-		require.NotNil(t, err)
-	}()
-
-	<-done
-	time.Sleep(delay / 10)
-	done = make(chan struct{})
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		close(done)
-		_, err := cs.C.DialAddr(ctx, mocktcp.AddrBad, false)
-		require.ErrorIs(t, err, ctx.Err())
-	}()
-	<-done
-	time.Sleep(delay / 10)
-	cancel()
-}
-
-func TestTcpDial_NoMux(t *testing.T) {
-	for N := 1; N <= M; N++ {
-		t.Run(strconv.Itoa(N), func(t *testing.T) {
-			defer tracer.Expect(tracer.Type{
-				TrSlotDeleted: ktest.Counter(N + 1),
-				ConnDeleted:   ktest.Counter(2 * N)}).Wait(t)
-
-			cs := mock.ClientServer(
-				mocktcp.Listener(),
-				mocktcp.Dialer(),
-				kstack.ImplOption{Mux: false})
-			defer cs.Dispose()
-
-			clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
-
-			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
-			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
-
-			ku.Map(clientConns, kstack.IConn.Close)
-			ku.Map(serverConns, kstack.IConn.Close)
-		})
-	}
-}
-
-func TestTcpDial_Delayed_NoMux(t *testing.T) {
-	for N := 1; N <= M; N++ {
-		t.Run(strconv.Itoa(N), func(t *testing.T) {
-			defer tracer.Expect(tracer.Type{
-				TrSlotDeleted: ktest.Counter(N + 1),
-				ConnDeleted:   ktest.Counter(2 * N)}).Wait(t)
-
-			cs := mock.ClientServer(
-				mocktcp.Listener(),
-				mocktcp.DelayedDialer(10*time.Millisecond),
-				kstack.ImplOption{Mux: false})
-			defer cs.Dispose()
-
-			clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
-
-			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
-			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
-
-			ku.Map(clientConns, kstack.IConn.Close)
-			ku.Map(serverConns, kstack.IConn.Close)
-		})
-	}
-}
-
 func TestTcpDial_NoMux_Delayed_Error(t *testing.T) {
 	const N = M
 	defer tracer.Expect(tracer.Type{
@@ -201,4 +168,43 @@ func TestTcpDial_NoMux_Delayed_Error(t *testing.T) {
 	wg.Wait()
 	elapsedTime := time.Since(startTime)
 	require.GreaterOrEqual(t, elapsedTime, delay)
+}
+
+func TestTcpDial_Delayed_Error_CancelWaiter(t *testing.T) {
+	for _, mux := range [2]bool{false, true} {
+		name := map[bool]string{false: "NoMux", true: "Mux"}[mux]
+		t.Run(name, func(t *testing.T) {
+			defer tracer.Expect(tracer.Type{
+				TrSlotDeleted: 1,
+				ConnDeleted:   0}).Wait(t)
+
+			delay := 10 * time.Millisecond
+			cs := mock.ClientServer(
+				mocktcp.Listener(),
+				mocktcp.DelayedDialer(delay),
+				kstack.ImplOption{Mux: mux})
+			defer cs.Dispose()
+
+			done := make(chan struct{})
+			go func() {
+				close(done)
+				_, err := cs.C.DialAddr(context.Background(), mocktcp.AddrBad, false)
+				require.NotNil(t, err)
+			}()
+
+			<-done
+			time.Sleep(delay / 10)
+			done = make(chan struct{})
+			ctx, cancel := context.WithCancel(context.Background())
+			go func() {
+				close(done)
+				_, err := cs.C.DialAddr(ctx, mocktcp.AddrBad, false)
+				require.ErrorIs(t, err, ctx.Err())
+			}()
+			<-done
+			time.Sleep(delay / 10)
+			cancel()
+		})
+	}
+
 }
