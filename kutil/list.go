@@ -9,7 +9,7 @@ type List[E IsZeroer] struct {
 	container []E
 }
 
-func (l *List[E]) NActive() int {
+func (l *List[E]) ActiveCount() int {
 	return l.nActive
 }
 
