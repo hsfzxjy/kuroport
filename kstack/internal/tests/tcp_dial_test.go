@@ -3,6 +3,7 @@ package kstack_test
 import (
 	"context"
 	"kstack"
+	"kstack/internal"
 	"kstack/internal/mock"
 	mocktcp "kstack/internal/mock/tcp"
 	"kstack/internal/tracer"
@@ -114,6 +115,43 @@ func TestTcpDial_NoMux_Delayed(t *testing.T) {
 	}
 }
 
+func TestTcpDial_NoMux_Delayed_FailFast(t *testing.T) {
+	defer tracer.Expect(tracer.Type{
+		TrSlotDeleted: 2,
+		ConnDeleted:   2}).Wait(t)
+
+	firstDialing := make(chan struct{})
+	secondDialing := make(chan struct{})
+
+	cs := mock.ClientServer(
+		mocktcp.Listener(),
+		mocktcp.NotifiableDialer(firstDialing),
+		kstack.ImplOption{
+			Mux:                        false,
+			TransportPerAddrMaxDialing: 1})
+	defer cs.Dispose()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		c, err := cs.C.DialAddr(context.Background(), mocktcp.Addr.WithCh(secondDialing), false)
+		require.Nil(t, err)
+		c.Close()
+	}()
+
+	<-firstDialing
+	go func() {
+		defer wg.Done()
+		_, err := cs.C.DialAddr(context.Background(), mocktcp.Addr, true)
+		require.ErrorIs(t, err, internal.ErrTryAgain)
+		close(secondDialing)
+	}()
+	wg.Wait()
+	(<-cs.Ch).Close()
+}
+
 func TestTcpDial_Delayed_Error(t *testing.T) {
 	const N = M
 	defer tracer.Expect(tracer.Type{
@@ -206,5 +244,4 @@ func TestTcpDial_Delayed_Error_CancelWaiter(t *testing.T) {
 			cancel()
 		})
 	}
-
 }

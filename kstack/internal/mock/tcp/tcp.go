@@ -13,6 +13,7 @@ import (
 
 type _Addr struct {
 	*net.TCPAddr
+	ch <-chan struct{}
 }
 
 func (a _Addr) Family() kstack.Family {
@@ -31,18 +32,22 @@ func (a _Addr) Addr() kstack.IAddr {
 	return a
 }
 
+func (a _Addr) WithCh(ch <-chan struct{}) _Addr {
+	return _Addr{a.TCPAddr, ch}
+}
+
 var Addr _Addr
 var AddrBad _Addr
 
 func init() {
 	tcpAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:18888")
-	Addr = _Addr{tcpAddr}
+	Addr = _Addr{TCPAddr: tcpAddr}
 }
 
 func newTransport(c *net.TCPConn) kstack.ITransport {
 	return kstack.WrapTransport(c, kstack.WrapOption{
 		CloseOnError: true,
-		AddrProvider: _Addr{c.RemoteAddr().(*net.TCPAddr)},
+		AddrProvider: _Addr{TCPAddr: c.RemoteAddr().(*net.TCPAddr)},
 	})
 }
 
@@ -116,6 +121,7 @@ type _DelayedDialer struct {
 func DelayedDialer(delay time.Duration) _DelayedDialer {
 	return _DelayedDialer{delay}
 }
+
 func (d _DelayedDialer) DialAddr(ctx context.Context, addr kstack.IAddr) (kstack.ITransport, error) {
 	timer := time.NewTimer(d.duration)
 	defer timer.Stop()
@@ -124,6 +130,30 @@ func (d _DelayedDialer) DialAddr(ctx context.Context, addr kstack.IAddr) (kstack
 		return nil, ctx.Err()
 	case <-timer.C:
 	}
+	c, err := net.DialTCP("tcp", nil, addr.(_Addr).TCPAddr)
+	if err != nil {
+		return nil, err
+	}
+	return newTransport(c), nil
+}
+
+type _NotifiableDialer struct {
+	ch chan<- struct{}
+}
+
+func NotifiableDialer(ch chan<- struct{}) *_NotifiableDialer {
+	return &_NotifiableDialer{ch: ch}
+}
+
+func (d *_NotifiableDialer) DialAddr(ctx context.Context, addr kstack.IAddr) (kstack.ITransport, error) {
+	if d.ch != nil {
+		close(d.ch)
+	}
+
+	if a, ok := addr.(_Addr); ok && a.ch != nil {
+		<-a.ch
+	}
+
 	c, err := net.DialTCP("tcp", nil, addr.(_Addr).TCPAddr)
 	if err != nil {
 		return nil, err
