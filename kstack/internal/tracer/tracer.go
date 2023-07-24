@@ -2,7 +2,6 @@ package tracer
 
 import (
 	"ktest"
-	"testing"
 	"time"
 )
 
@@ -11,45 +10,24 @@ type _Tracer struct {
 	_             uint32
 	ConnDeleted   ktest.Counter
 	_             uint32
-	waitCh        <-chan struct{}
+}
+
+type _HasDeadline interface {
+	Deadline() (time.Time, bool)
 }
 
 var T *_Tracer
-var expected *_Tracer
 
 type Type = _Tracer
 
-func Wait(t *testing.T) {
-	if p := recover(); p != nil {
-		panic(p)
-	}
-
-	var timeout time.Duration
-	if ddl, ok := t.Deadline(); ok {
-		timeout = time.Until(ddl)
-		if timeout > 0 {
-			timeout = timeout / 2
-		}
-	}
-
-	if timeout <= 0 {
-		<-T.waitCh
-	} else {
-		select {
-		case <-T.waitCh:
-		case <-time.After(timeout):
-			panic(ktest.ReportTracer(T, expected))
-		}
-	}
+func Wait(t _HasDeadline) {
+	doWait(t)
 }
 
 func Expect(t _Tracer) chainer {
-	*T = t
-	expected = &t
-	T.waitCh = ktest.ResetTracer(T)
-	return chainer{}
+	return doExpect(t)
 }
 
 type chainer struct{}
 
-func (chainer) Wait(t *testing.T) { Wait(t) }
+func (chainer) Wait(t _HasDeadline) { Wait(t) }
