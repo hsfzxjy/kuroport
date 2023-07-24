@@ -101,7 +101,11 @@ type Impl interface {
 }
 
 type ImplOption struct {
-	Mux                 bool
-	TransportMaxTotal   uint
-	TransportMaxPerAddr uint
+	Mux                        bool
+	TransportMaxDialing        uint32
+	TransportMaxAlive          uint32
+	TransportPerAddrMaxDialing uint32
+	TransportPerAddrMaxAlive   uint32
 }
+
+const MAX_SIZE = uint32(1 << 30)

@@ -68,9 +68,25 @@ func (s *Stack) Register(impl Impl) {
 		panic("kstack: family has been registered")
 	}
 	oldImpl.i = impl
+	s.validateImplOption(&oldImpl.i.Option)
 	oldImpl.stack = s
 	oldImpl.trManager = transport.NewManager(oldImpl)
 	oldImpl.connManager = conn.NewManager(oldImpl)
+}
+
+func (s *Stack) validateImplOption(o *ImplOption) {
+	if o.TransportMaxAlive == 0 {
+		o.TransportMaxAlive = internal.MAX_SIZE
+	}
+	if o.TransportMaxDialing == 0 {
+		o.TransportMaxDialing = internal.MAX_SIZE
+	}
+	if o.TransportPerAddrMaxAlive == 0 {
+		o.TransportPerAddrMaxAlive = internal.MAX_SIZE
+	}
+	if o.TransportPerAddrMaxDialing == 0 {
+		o.TransportPerAddrMaxDialing = internal.MAX_SIZE
+	}
 }
 
 type Impl struct {
