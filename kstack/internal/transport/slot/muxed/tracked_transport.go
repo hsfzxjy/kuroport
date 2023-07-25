@@ -12,9 +12,9 @@ type Tracked struct {
 	smuxSession *smux.Session
 }
 
-func New(impl internal.Impl, itr internal.ITransport, isRemote bool, disposeSelf ku.F) (tr Tracked, err error) {
+func New(impl internal.Impl, itr internal.ITransport, isInbound bool, disposeSelf ku.F) (tr Tracked, err error) {
 	var session *smux.Session
-	if isRemote {
+	if isInbound {
 		session, err = smux.Server(itr, nil)
 	} else {
 		session, err = smux.Client(itr, nil)

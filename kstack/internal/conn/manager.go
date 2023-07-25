@@ -26,7 +26,7 @@ func NewManager(impl internal.Impl) *_Manager {
 
 var ErrStackWontAcceptConn = errors.New("kstack: stack won't accept conn, specify non-nil RemoteConns to fix")
 
-func (m *_Manager) Track(itr internal.ITransport, stream *smux.Stream, isRemote bool) (internal.IConn, error) {
+func (m *_Manager) Track(itr internal.ITransport, stream *smux.Stream, isInbound bool) (internal.IConn, error) {
 	var c internal.IConn
 
 	if !m.impl.ImplOption().Mux {
@@ -35,7 +35,7 @@ func (m *_Manager) Track(itr internal.ITransport, stream *smux.Stream, isRemote 
 		}
 	}
 
-	if isRemote && m.impl.StackOption().RemoteConns == nil {
+	if isInbound && m.impl.StackOption().RemoteConns == nil {
 		if stream != nil {
 			stream.Close()
 		}
@@ -70,7 +70,7 @@ func (m *_Manager) Track(itr internal.ITransport, stream *smux.Stream, isRemote 
 		})
 	}
 
-	if isRemote {
+	if isInbound {
 		m.impl.StackOption().RemoteConns <- c
 	}
 

@@ -12,13 +12,13 @@ type Tracked struct {
 	isOpened atomic.Bool
 }
 
-func New(impl internal.Impl, itr internal.ITransport, isRemote bool, disposeSelf ku.F) (*Tracked, error) {
+func New(impl internal.Impl, itr internal.ITransport, isInbound bool, disposeSelf ku.F) (*Tracked, error) {
 	tr := &Tracked{iface: itr}
 	go tr.runLoop(impl, disposeSelf)
 
-	if isRemote {
+	if isInbound {
 		tr.isOpened.Store(true)
-		if _, err := impl.ConnManager().Track(itr, nil, isRemote); err != nil {
+		if _, err := impl.ConnManager().Track(itr, nil, isInbound); err != nil {
 			itr.Close()
 			return nil, err
 		}

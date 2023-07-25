@@ -97,9 +97,9 @@ func (s *Slot) DialAndTrack(dialF ku.Awaiter[internal.ITransport], failFast bool
 	}
 }
 
-func (s *Slot) trackMuxedLocked(itr internal.ITransport, isRemote bool) (internal.TrackedTransport, error) {
+func (s *Slot) trackMuxedLocked(itr internal.ITransport, isInbound bool) (internal.TrackedTransport, error) {
 	var index int
-	tr, err := muxed.New(s.impl, itr, isRemote, func() {
+	tr, err := muxed.New(s.impl, itr, isInbound, func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.muxedTrs.Delete(index)
@@ -117,9 +117,9 @@ func (s *Slot) trackMuxedLocked(itr internal.ITransport, isRemote bool) (interna
 	return tr, nil
 }
 
-func (s *Slot) trackNotMuxedLocked(itr internal.ITransport, isRemote bool) (internal.TrackedTransport, error) {
+func (s *Slot) trackNotMuxedLocked(itr internal.ITransport, isInbound bool) (internal.TrackedTransport, error) {
 	s.nNotMuxedTrs++
-	return not_muxed.New(s.impl, itr, isRemote, func() {
+	return not_muxed.New(s.impl, itr, isInbound, func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.nNotMuxedTrs--
@@ -129,16 +129,16 @@ func (s *Slot) trackNotMuxedLocked(itr internal.ITransport, isRemote bool) (inte
 	})
 }
 
-func (s *Slot) trackLocked(itr internal.ITransport, isRemote bool) (internal.TrackedTransport, error) {
+func (s *Slot) trackLocked(itr internal.ITransport, isInbound bool) (internal.TrackedTransport, error) {
 	opt := s.impl.ImplOption()
 	if s.nAliveTrsRLocked() >= opt.TransportPerAddrMaxAlive {
 		return nil, internal.ErrTryAgain
 	}
 
 	if opt.Mux {
-		return s.trackMuxedLocked(itr, isRemote)
+		return s.trackMuxedLocked(itr, isInbound)
 	} else {
-		return s.trackNotMuxedLocked(itr, isRemote)
+		return s.trackNotMuxedLocked(itr, isInbound)
 	}
 }
 
@@ -146,8 +146,8 @@ func (s *Slot) isEmptyRLocked() bool {
 	return s.nAliveTrsRLocked() == 0 && s.nWaitingOrDialing == 0
 }
 
-func (s *Slot) Track(itr internal.ITransport, isRemote bool) (internal.TrackedTransport, error) {
+func (s *Slot) Track(itr internal.ITransport, isInbound bool) (internal.TrackedTransport, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.trackLocked(itr, isRemote)
+	return s.trackLocked(itr, isInbound)
 }
