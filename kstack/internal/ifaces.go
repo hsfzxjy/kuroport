@@ -4,18 +4,19 @@ import (
 	"context"
 	"io"
 	"kservice"
+	"kstack/peer"
 	ku "kutil"
 	"time"
 
 	"github.com/hsfzxjy/smux"
 )
 
-type ConnID uint64
+type StreamID uint64
 
-type IConn interface {
+type IStream interface {
 	io.ReadWriteCloser
-	ID() ConnID
-	Transport() ITransport
+	ID() StreamID
+	Conn() IConn
 	SetDeadline(time.Time) error
 	SetReadDeadline(time.Time) error
 	SetWriteDeadline(time.Time) error
@@ -25,10 +26,10 @@ type IAddr interface {
 	Family() Family
 	String() string
 	Hash() ku.Hash
-	ResolveDevice() (IDevice, error)
+	ResolveDevice() (IUnidentifiedDevice, error)
 }
 
-type ITransport interface {
+type IConn interface {
 	io.ReadWriteCloser
 	SetDeadline(time.Time) error
 	SetReadDeadline(time.Time) error
@@ -36,76 +37,66 @@ type ITransport interface {
 	Family() Family
 	Addr() IAddr
 	DiedCh() <-chan struct{}
+	RemotePeer() peer.ID
+	IsSecure() bool
 }
 
-type IIdentity interface {
-	Hash() ku.Hash
-	Devices() []IDevice
-}
-
-type IDeviceID interface {
-	Hash() ku.Hash
-	String() string
+type IUnidentifiedDevice interface {
 	Family() Family
-}
-
-type IDevice interface {
-	DeviceID() IDeviceID
-	Family() Family
-	Identity() IIdentity
 	Addrs() []IAddr
-	DialFunc() func(context.Context) (ITransport, error)
+	Name() string
+	DialFunc() func(context.Context) (IConn, error)
 }
 
 type IListener interface {
 	kservice.IService
-	AcceptTransport(chan<- ITransport)
+	AcceptTransport(chan<- IConn)
 }
 
 type IScanner interface {
 	kservice.IService
-	AcceptDevice(chan<- IDevice)
+	AcceptDevice(chan<- IUnidentifiedDevice)
 }
 
 type IDialer interface {
-	DialAddr(ctx context.Context, addr IAddr) (ITransport, error)
+	DialAddr(ctx context.Context, addr IAddr) (IConn, error)
 }
 
 type IAdvertiser interface {
 	kservice.IService
 }
 
-type ConnManager interface {
-	Track(itr ITransport, stream *smux.Stream, isRemote bool) (IConn, error)
+type IStreamMgr interface {
+	Track(ic IConn, stream *smux.Stream, isInbound bool) (IStream, error)
 }
 
-type TrackedTransport interface {
-	Open(impl Impl) (IConn, error)
+type ITrackedConn interface {
+	Open(impl Impl) (IStream, error)
 }
 
-type TrManager interface {
-	TrackRemote(itr ITransport) (tr TrackedTransport, err error)
-	Dial(ctx context.Context, addr IAddr, failFast bool) (tr TrackedTransport, err error)
+type IConnMgr interface {
+	TrackRemote(ic IConn) (c ITrackedConn, err error)
+	Dial(ctx context.Context, addr IAddr, failFast bool) (c ITrackedConn, err error)
 }
 
 type Option struct {
-	RemoteConns chan<- IConn
+	RemoteConns chan<- IStream
 }
 
 type Impl interface {
 	Dialer() IDialer
 	StackOption() Option
 	ImplOption() ImplOption
-	ConnManager() ConnManager
-	TrManager() TrManager
+	StreamMgr() IStreamMgr
+	ConnMgr() IConnMgr
 }
 
 type ImplOption struct {
-	Mux                        bool
-	TransportMaxDialing        uint32
-	TransportMaxAlive          uint32
-	TransportPerAddrMaxDialing uint32
-	TransportPerAddrMaxAlive   uint32
+	Mux                   bool
+	ConnMaxDialing        uint32
+	ConnMaxAlive          uint32
+	ConnPerAddrMaxDialing uint32
+	ConnPerAddrMaxAlive   uint32
 }
 
 const MAX_SIZE = uint32(1 << 30)

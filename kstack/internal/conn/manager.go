@@ -1,78 +1,72 @@
 package conn
 
 import (
+	"context"
 	"errors"
+	"hash/maphash"
 	"kstack/internal"
+	"kstack/internal/conn/slot"
 	"kstack/internal/tracer"
-	"sync/atomic"
+	ku "kutil"
+	"sync"
 
-	"github.com/hsfzxjy/smux"
 	"github.com/puzpuzpuz/xsync/v2"
 )
 
 type _Manager struct {
 	impl internal.Impl
-	m    *xsync.MapOf[internal.ConnID, internal.IConn]
-
-	nextId atomic.Uint64
+	m    *xsync.MapOf[ku.Hash, *slot.Slot]
 }
 
 func NewManager(impl internal.Impl) *_Manager {
-	m := new(_Manager)
-	m.impl = impl
-	m.m = xsync.NewIntegerMapOf[internal.ConnID, internal.IConn]()
-	return m
+	return &_Manager{
+		impl,
+		xsync.NewTypedMapOf[ku.Hash, *slot.Slot](func(s maphash.Seed, k ku.Hash) uint64 {
+			return k.Uint64()
+		}),
+	}
 }
 
-var ErrStackWontAcceptConn = errors.New("kstack: stack won't accept conn, specify non-nil RemoteConns to fix")
-
-func (m *_Manager) Track(itr internal.ITransport, stream *smux.Stream, isInbound bool) (internal.IConn, error) {
-	var c internal.IConn
-
-	if !m.impl.ImplOption().Mux {
-		if stream != nil {
-			panic("kstack: stream must be nil")
-		}
-	}
-
-	if isInbound && m.impl.StackOption().RemoteConns == nil {
-		if stream != nil {
-			stream.Close()
-		}
-		return nil, ErrStackWontAcceptConn
-	}
-
-	var idOk bool
-	var id internal.ConnID
-	for !idOk {
-		nextId := m.nextId.Add(1)
-		id = internal.ConnID(nextId)
-		m.m.Compute(id, func(conn internal.IConn, loaded bool) (_ internal.IConn, delete bool) {
-			if loaded {
-				idOk = false
-				return conn, false
+func (m *_Manager) slotDisposer(addrHash ku.Hash) ku.F {
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			if tracer.Enabled {
+				tracer.T.TrSlotDeleted.Add()
 			}
-			idOk = true
-
-			disposeConn := func() {
-				if tracer.Enabled {
-					tracer.T.ConnDeleted.Add()
-				}
-				m.m.Delete(id)
-			}
-
-			if stream == nil {
-				c = newConn(id, itr, disposeConn)
-			} else {
-				c = newMuxedConn(id, itr, stream, disposeConn)
-			}
-			return c, false
+			m.m.Delete(addrHash)
 		})
 	}
+}
 
-	if isInbound {
-		m.impl.StackOption().RemoteConns <- c
-	}
+func (m *_Manager) TrackRemote(ic internal.IConn) (c internal.ITrackedConn, err error) {
+	hash := ic.Addr().Hash()
+	m.m.Compute(hash, func(s *slot.Slot, loaded bool) (*slot.Slot, bool) {
+		if !loaded {
+			s = slot.New(m.impl, m.slotDisposer(hash))
+		}
+		c, err = s.Track(ic, true)
+		return s, false
+	})
+	return c, err
+}
 
-	return c, nil
+var ErrTryAgain = errors.New("kstack: conns reach max capacity")
+
+func (m *_Manager) Dial(ctx context.Context, addr internal.IAddr, failFast bool) (c internal.ITrackedConn, err error) {
+	dialer := m.impl.Dialer()
+
+	hash := addr.Hash()
+
+	var awaiter ku.Awaiter[internal.ITrackedConn]
+	m.m.Compute(hash, func(s *slot.Slot, loaded bool) (*slot.Slot, bool) {
+		if !loaded {
+			s = slot.New(m.impl, m.slotDisposer(hash))
+		}
+		awaiter = s.DialAndTrack(func() (internal.IConn, error) {
+			return dialer.DialAddr(ctx, addr)
+		}, failFast)
+		return s, false
+	})
+	return awaiter()
 }

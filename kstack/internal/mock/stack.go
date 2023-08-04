@@ -56,7 +56,7 @@ func Stack(option kstack.Option) stackBuilder {
 }
 
 type CS struct {
-	Ch      <-chan kstack.IConn
+	Ch      <-chan kstack.IStream
 	C       *kstack.Stack
 	S       *kstack.Stack
 	dispose ku.F
@@ -66,9 +66,9 @@ func (cs *CS) Dispose() {
 	cs.dispose.Do()
 }
 
-func (cs *CS) GetConns(t *testing.T, n int, addr kstack.IAddr) (clientConns, serverConns []kstack.IConn) {
-	clientConns = make([]internal.IConn, n)
-	serverConns = make([]internal.IConn, n)
+func (cs *CS) GetConns(t *testing.T, n int, addr kstack.IAddr) (clientConns, serverConns []kstack.IStream) {
+	clientConns = make([]internal.IStream, n)
+	serverConns = make([]internal.IStream, n)
 	var wg sync.WaitGroup
 	wg.Add(n)
 	for i := 0; i < n; i++ {
@@ -92,7 +92,7 @@ func ClientServer(
 	dialer kstack.IDialer,
 	implOption kstack.ImplOption) *CS {
 	cs := new(CS)
-	ch := make(chan kstack.IConn, 10)
+	ch := make(chan kstack.IStream, 10)
 	cs.Ch = ch
 	c := Stack(kstack.Option{}).
 		Impl(kstack.Impl{

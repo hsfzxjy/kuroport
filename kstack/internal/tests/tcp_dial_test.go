@@ -34,11 +34,11 @@ func TestTcpDial(t *testing.T) {
 
 			clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
 
-			ktest.RequireAllEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
-			ktest.RequireAllEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
+			ktest.RequireAllEqual(t, ku.Map(clientConns, kstack.IStream.Conn))
+			ktest.RequireAllEqual(t, ku.Map(serverConns, kstack.IStream.Conn))
 
-			clientConns[0].Transport().Close()
-			serverConns[0].Transport().Close()
+			clientConns[0].Conn().Close()
+			serverConns[0].Conn().Close()
 		})
 	}
 }
@@ -58,11 +58,11 @@ func TestTcpDial_NoMux(t *testing.T) {
 
 			clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
 
-			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
-			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
+			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IStream.Conn))
+			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IStream.Conn))
 
-			ku.Map(clientConns, kstack.IConn.Close)
-			ku.Map(serverConns, kstack.IConn.Close)
+			ku.Map(clientConns, kstack.IStream.Close)
+			ku.Map(serverConns, kstack.IStream.Close)
 		})
 	}
 }
@@ -84,11 +84,11 @@ func TestTcpDial_Delayed(t *testing.T) {
 	clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
 	require.WithinDuration(t, startTime.Add(delay), time.Now(), delay/2)
 
-	ktest.RequireAllEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
-	ktest.RequireAllEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
+	ktest.RequireAllEqual(t, ku.Map(clientConns, kstack.IStream.Conn))
+	ktest.RequireAllEqual(t, ku.Map(serverConns, kstack.IStream.Conn))
 
-	clientConns[0].Transport().Close()
-	serverConns[0].Transport().Close()
+	clientConns[0].Conn().Close()
+	serverConns[0].Conn().Close()
 }
 
 func TestTcpDial_NoMux_Delayed(t *testing.T) {
@@ -106,11 +106,11 @@ func TestTcpDial_NoMux_Delayed(t *testing.T) {
 
 			clientConns, serverConns := cs.GetConns(t, N, mocktcp.Addr)
 
-			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IConn.Transport))
-			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IConn.Transport))
+			ktest.RequireAllNotEqual(t, ku.Map(clientConns, kstack.IStream.Conn))
+			ktest.RequireAllNotEqual(t, ku.Map(serverConns, kstack.IStream.Conn))
 
-			ku.Map(clientConns, kstack.IConn.Close)
-			ku.Map(serverConns, kstack.IConn.Close)
+			ku.Map(clientConns, kstack.IStream.Close)
+			ku.Map(serverConns, kstack.IStream.Close)
 		})
 	}
 }
@@ -127,8 +127,8 @@ func TestTcpDial_NoMux_Delayed_FailFast(t *testing.T) {
 		mocktcp.Listener(),
 		mocktcp.NotifiableDialer(firstDialing),
 		kstack.ImplOption{
-			Mux:                        false,
-			TransportPerAddrMaxDialing: 1})
+			Mux:                   false,
+			ConnPerAddrMaxDialing: 1})
 	defer cs.Dispose()
 
 	var wg sync.WaitGroup
