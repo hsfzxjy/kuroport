@@ -1,6 +1,6 @@
 module kservice
 
-go 1.20
+go 1.21
 
 require (
 	github.com/hsfzxjy/pipe v0.2.3

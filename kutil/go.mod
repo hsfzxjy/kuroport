@@ -1,6 +1,6 @@
 module kutil
 
-go 1.20
+go 1.21
 
 require go4.org/intern v0.0.0-20230525184215-6c62f75575cb
 
