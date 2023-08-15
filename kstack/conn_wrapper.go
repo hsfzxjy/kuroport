@@ -58,14 +58,7 @@ func (w *_ConnWrapper[C]) DiedCh() <-chan struct{} {
 	return w.diedCh
 }
 
-func (w *_ConnWrapper[C]) IsSecure() bool {
-	if isSecurer, ok := IRawConn(w.rawConn).(interface{ IsSecure() bool }); ok {
-		return isSecurer.IsSecure()
-	}
-	return false
-}
-
-func (*_ConnWrapper[C]) RemotePeer() peer.ID {
+func (*_ConnWrapper[C]) RemoteID() peer.ID {
 	return ""
 }
 

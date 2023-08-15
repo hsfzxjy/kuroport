@@ -37,8 +37,7 @@ type IConn interface {
 	Family() Family
 	Addr() IAddr
 	DiedCh() <-chan struct{}
-	RemotePeer() peer.ID
-	IsSecure() bool
+	RemoteID() peer.ID
 }
 
 type IUnidentifiedDevice interface {
