@@ -28,12 +28,12 @@ func (s *_Stage) Set(a, b byte) {
 }
 
 type _Session struct {
-	conn      kstack.IConn
-	initiator bool
-	cfg       *core.Config
-	oopt      core.OutboundOption
-	store     core.IStore
-	rw        _RW
+	Conn      kstack.IConn
+	Initiator bool
+	Cfg       *core.Config
+	OOpt      core.OutboundOption
+	Store     core.IStore
+	Rw        _RW
 
 	Error   error
 	Version _Version
@@ -52,11 +52,11 @@ func Initiate(ctx context.Context, config *core.Config, oopt core.OutboundOption
 		*s = _Session{}
 		sessionPool.Put(s)
 	}()
-	s.conn = conn
-	s.initiator = true
-	s.cfg = config
-	s.oopt = oopt
-	s.store = store
+	s.Conn = conn
+	s.Initiator = true
+	s.Cfg = config
+	s.OOpt = oopt
+	s.Store = store
 	err := s.run(ctx)
 	if err != nil {
 		return Result{}, err
@@ -70,10 +70,10 @@ func Respond(ctx context.Context, config *core.Config, store core.IStore, conn k
 		*s = _Session{}
 		sessionPool.Put(s)
 	}()
-	s.conn = conn
-	s.initiator = false
-	s.cfg = config
-	s.store = store
+	s.Conn = conn
+	s.Initiator = false
+	s.Cfg = config
+	s.Store = store
 	err := s.run(ctx)
 	if err != nil {
 		return Result{}, err
@@ -88,7 +88,7 @@ func (s *_Session) run(ctx context.Context) error {
 		canceled = false
 	)
 	wg.Add(1)
-	conn := s.conn
+	conn := s.Conn
 	go func() {
 		defer wg.Done()
 		select {
@@ -105,7 +105,7 @@ func (s *_Session) run(ctx context.Context) error {
 	} else if err != nil {
 		err = _Error{
 			Version:   s.Version,
-			Initiator: s.initiator,
+			Initiator: s.Initiator,
 			Stage:     s.Stage,
 			Wrapped:   err,
 		}
@@ -114,7 +114,7 @@ func (s *_Session) run(ctx context.Context) error {
 		conn.Close()
 		return err
 	}
-	s.Result.RW = s.rw.RW
+	s.Result.RW = s.Rw.RW
 	return nil
 }
 
@@ -122,19 +122,19 @@ func (s *_Session) doRun() (errToReturn error) {
 	defer func() {
 		s.Error = errToReturn
 	}()
-	s.conn.SetDeadline(time.Now().Add(core.Timeout))
+	s.Conn.SetDeadline(time.Now().Add(core.Timeout))
 
-	defer s.rw.Init(s, 2<<10)()
+	defer s.Rw.Init(s, 2<<10)()
 
 	var hello1 _Hello1_Payload
 	var resp1 _Resp1_Payload
-	if s.initiator {
+	if s.Initiator {
 		// Stage 0.0: Send Hello1 to Responder
 		{
 			s.Stage.Set(0, 0)
 
 			hello1.Pack(true)
-			if err := s.rw.WriteMessage(&hello1); err != nil {
+			if err := s.Rw.WriteMessage(&hello1); err != nil {
 				return err
 			}
 		}
@@ -143,7 +143,7 @@ func (s *_Session) doRun() (errToReturn error) {
 		{
 			s.Stage.Set(0, 1)
 
-			if err := s.rw.ReadMessage(&resp1); err != nil {
+			if err := s.Rw.ReadMessage(&resp1); err != nil {
 				return err
 			}
 			if !resp1.VerifyVersion(&hello1) {
@@ -151,7 +151,7 @@ func (s *_Session) doRun() (errToReturn error) {
 			}
 			s.UseEncryption = resp1.UseEncryption
 			if !s.UseEncryption { // TODO: Support cleartext handshake
-				return ErrAuthFailed
+				return ErrEncryptionRequired
 			}
 
 			s.Version = resp1.ChosenVersion
@@ -170,7 +170,7 @@ func (s *_Session) doRun() (errToReturn error) {
 		{
 			s.Stage.Set(0, 0)
 
-			if err := s.rw.ReadMessage(&hello1); err != nil {
+			if err := s.Rw.ReadMessage(&hello1); err != nil {
 				return err
 			}
 			if !hello1.ICanEncrypt {
@@ -194,7 +194,7 @@ func (s *_Session) doRun() (errToReturn error) {
 				UseEncryption: true,
 				ChosenVersion: chosenVersion,
 			}
-			if err := s.rw.WriteMessage(resp1); err != nil {
+			if err := s.Rw.WriteMessage(resp1); err != nil {
 				return err
 			}
 			s.Version = resp1.ChosenVersion
@@ -211,7 +211,7 @@ func (s *_Session) doRun() (errToReturn error) {
 }
 
 func (s *_Session) setCipherStates(cs1, cs2 *noise.CipherState) {
-	if s.initiator {
+	if s.Initiator {
 		s.Enc = cs1
 		s.Dec = cs2
 	} else {

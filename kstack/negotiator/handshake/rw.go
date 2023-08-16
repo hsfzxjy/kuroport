@@ -20,7 +20,7 @@ type _RW struct {
 }
 
 func (rw *_RW) Init(s *_Session, bufSize int) (dispose ku.F) {
-	rw.RW.Init(s.conn)
+	rw.RW.Init(s.Conn)
 	rw.setCipherStates = s.setCipherStates
 	buf := pool.Get(bufSize)
 	rw.wbuf = buf
