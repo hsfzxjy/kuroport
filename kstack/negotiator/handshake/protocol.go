@@ -10,3 +10,6 @@ type _Protocol interface {
 var protocols = map[byte]_Protocol{
 	0x01: _ProtocolV1{},
 }
+
+// newer comes first
+var protocolVersions = [...]byte{0x01}

@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"slices"
-
 	"github.com/flynn/noise"
 )
 
@@ -119,15 +117,14 @@ func (s *_Session) doRun() (errToReturn error) {
 
 	defer s.rw.Init(s, 2<<10)()
 
+	var hello1 _Hello1_Payload
+	var resp1 _Resp1_Payload
 	if s.initiator {
 		// Stage 0.0: Send Hello1 to Responder
 		{
 			s.Stage = [2]byte{0x0, 0x0}
 
-			var hello1 = _Hello1_Payload{
-				ICanEncrypt: true,
-				Versions:    [4]uint8{0x01},
-			}
+			hello1.Pack(true)
 			if err := s.rw.WriteMessage(&hello1); err != nil {
 				return err
 			}
@@ -137,16 +134,15 @@ func (s *_Session) doRun() (errToReturn error) {
 		{
 			s.Stage = [2]byte{0x0, 0x1}
 
-			var resp1 _Resp1_Payload
 			if err := s.rw.ReadMessage(&resp1); err != nil {
 				return err
+			}
+			if !resp1.VerifyVersion(&hello1) {
+				return ErrUnsupportedVersion
 			}
 			s.UseEncryption = resp1.UseEncryption
 			if !s.UseEncryption { // TODO: Support cleartext handshake
 				return ErrAuthFailed
-			}
-			if resp1.ChosenVersion != 0x01 {
-				return ErrUnsupportedVersion
 			}
 
 			s.Version = resp1.ChosenVersion
@@ -161,10 +157,10 @@ func (s *_Session) doRun() (errToReturn error) {
 
 	} else {
 		// Stage 0.0: Recv Hello1 from Initiator
+		var chosenVersion byte
 		{
 			s.Stage = [2]byte{0x0, 0x0}
 
-			var hello1 _Hello1_Payload
 			if err := s.rw.ReadMessage(&hello1); err != nil {
 				return err
 			}
@@ -175,7 +171,8 @@ func (s *_Session) doRun() (errToReturn error) {
 			if !s.UseEncryption {
 				return ErrEncryptionRequired
 			}
-			if !slices.Contains(hello1.Versions[:], 0x01) {
+			chosenVersion = hello1.ChooseVersion()
+			if chosenVersion == 0 {
 				return ErrUnsupportedVersion
 			}
 		}
@@ -186,7 +183,7 @@ func (s *_Session) doRun() (errToReturn error) {
 
 			var resp1 = _Resp1_Payload{
 				UseEncryption: true,
-				ChosenVersion: 0x01,
+				ChosenVersion: chosenVersion,
 			}
 			if err := s.rw.WriteMessage(resp1); err != nil {
 				return err
