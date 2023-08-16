@@ -1,6 +1,6 @@
 //go:build test
 
-package handshake_test
+package nego_test
 
 import (
 	"context"
