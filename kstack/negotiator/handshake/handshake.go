@@ -114,6 +114,7 @@ func (s *_Session) run(ctx context.Context) error {
 		conn.Close()
 		return err
 	}
+	s.Result.RW = s.rw.RW
 	return nil
 }
 
