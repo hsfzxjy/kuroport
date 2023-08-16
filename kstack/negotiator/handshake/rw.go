@@ -10,7 +10,7 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-const lenPrefixSize = rw.LEN_PREFIX_SIZE
+const lengthPrefixLength = rw.LengthPrefixLength
 
 type _RW struct {
 	rw.RW
@@ -87,14 +87,14 @@ func (rw *_RW) ReadAndDecryptMessage(um msgp.Unmarshaler, hs *noise.HandshakeSta
 func (rw *_RW) WriteBytes(msg []byte) error {
 	n := len(msg)
 	binary.BigEndian.PutUint16(rw.wbuf[:], uint16(n))
-	return rw.WriteMsgInsecure(rw.wbuf[:n+lenPrefixSize])
+	return rw.WriteMsgInsecure(rw.wbuf[:n+lengthPrefixLength])
 }
 
 func (rw *_RW) WriteMessage(m msgp.Marshaler) error {
 	var encoded []byte
 	if m != nil {
 		var err error
-		encoded, err = m.MarshalMsg(rw.wbuf[lenPrefixSize:lenPrefixSize])
+		encoded, err = m.MarshalMsg(rw.wbuf[lengthPrefixLength:lengthPrefixLength])
 		if err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ func (rw *_RW) EncryptAndWriteMessage(m msgp.MarshalSizer, hs *noise.HandshakeSt
 			return err
 		}
 	}
-	encoded, cs1, cs2, err := hs.WriteMessage(rw.wbuf[lenPrefixSize:lenPrefixSize], payload)
+	encoded, cs1, cs2, err := hs.WriteMessage(rw.wbuf[lengthPrefixLength:lengthPrefixLength], payload)
 	if err != nil {
 		return err
 	}

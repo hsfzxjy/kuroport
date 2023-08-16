@@ -5,9 +5,13 @@ import (
 	"encoding/binary"
 	"io"
 	"kstack"
+
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
-const LEN_PREFIX_SIZE = 2
+const MaxTransportMsgLength = 0xffff
+const MaxPlaintextLength = MaxTransportMsgLength - chacha20poly1305.Overhead
+const LengthPrefixLength = 2
 
 type conn = kstack.IConn
 
@@ -15,7 +19,7 @@ type RW struct {
 	conn
 	insecureReader *bufio.Reader
 
-	buflen [LEN_PREFIX_SIZE]byte
+	buflen [LengthPrefixLength]byte
 }
 
 func (rw *RW) Conn() kstack.IConn {
