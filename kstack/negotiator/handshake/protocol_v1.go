@@ -22,7 +22,7 @@ func (_ProtocolV1) cryptoSuite(s *_Session) (dhkey noise.DHKey, hs *noise.Handsh
 	} else {
 		prologue = make([]byte, 1)
 	}
-	prologue[0] = s.Version
+	prologue[0] = byte(s.Version)
 
 	dhkey, err = noise.DH25519.GenerateKeypair(rand.Reader)
 	if err != nil {

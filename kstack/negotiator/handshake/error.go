@@ -6,7 +6,7 @@ import (
 )
 
 type _Error struct {
-	Version   uint8
+	Version   _Version
 	Initiator bool
 	Stage     [2]byte
 	Wrapped   error

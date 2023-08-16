@@ -11,10 +11,7 @@ func (z *_Hello1_Payload) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendArrayHeader(o, uint32(4))
-	for za0001 := range z.Versions {
-		o = msgp.AppendUint8(o, z.Versions[za0001])
-	}
+	o = msgp.AppendBytes(o, (z.Versions)[:])
 	o = msgp.AppendBool(o, z.ICanEncrypt)
 	return
 }
@@ -31,22 +28,10 @@ func (z *_Hello1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	var zb0002 uint32
-	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	bts, err = msgp.ReadExactBytes(bts, (z.Versions)[:])
 	if err != nil {
 		err = msgp.WrapError(err, "Versions")
 		return
-	}
-	if zb0002 != uint32(4) {
-		err = msgp.ArrayError{Wanted: uint32(4), Got: zb0002}
-		return
-	}
-	for za0001 := range z.Versions {
-		z.Versions[za0001], bts, err = msgp.ReadUint8Bytes(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "Versions", za0001)
-			return
-		}
 	}
 	z.ICanEncrypt, bts, err = msgp.ReadBoolBytes(bts)
 	if err != nil {
@@ -59,7 +44,7 @@ func (z *_Hello1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *_Hello1_Payload) Msgsize() (s int) {
-	s = 1 + msgp.ArrayHeaderSize + (4 * (msgp.Uint8Size)) + msgp.BoolSize
+	s = 1 + msgp.ArrayHeaderSize + (4 * (msgp.ByteSize)) + msgp.BoolSize
 	return
 }
 
@@ -68,7 +53,7 @@ func (z _Resp1_Payload) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
-	o = msgp.AppendUint8(o, z.ChosenVersion)
+	o = msgp.AppendByte(o, byte(z.ChosenVersion))
 	o = msgp.AppendBool(o, z.UseEncryption)
 	return
 }
@@ -85,10 +70,14 @@ func (z *_Resp1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.ChosenVersion, bts, err = msgp.ReadUint8Bytes(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "ChosenVersion")
-		return
+	{
+		var zb0002 byte
+		zb0002, bts, err = msgp.ReadByteBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err, "ChosenVersion")
+			return
+		}
+		z.ChosenVersion = _Version(zb0002)
 	}
 	z.UseEncryption, bts, err = msgp.ReadBoolBytes(bts)
 	if err != nil {
@@ -101,6 +90,34 @@ func (z *_Resp1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z _Resp1_Payload) Msgsize() (s int) {
-	s = 1 + msgp.Uint8Size + msgp.BoolSize
+	s = 1 + msgp.ByteSize + msgp.BoolSize
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z _Version) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	o = msgp.AppendByte(o, byte(z))
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *_Version) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	{
+		var zb0001 byte
+		zb0001, bts, err = msgp.ReadByteBytes(bts)
+		if err != nil {
+			err = msgp.WrapError(err)
+			return
+		}
+		(*z) = _Version(zb0001)
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z _Version) Msgsize() (s int) {
+	s = msgp.ByteSize
 	return
 }

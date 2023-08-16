@@ -7,7 +7,7 @@ type _Protocol interface {
 	HandleResponderCleartext(s *_Session) error
 }
 
-var protocols = map[byte]_Protocol{
+var protocols = map[_Version]_Protocol{
 	0x01: _ProtocolV1{},
 }
 

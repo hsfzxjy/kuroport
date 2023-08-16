@@ -30,7 +30,7 @@ type _Session struct {
 	rw        _RW
 
 	Error   error
-	Version uint8
+	Version _Version
 	Stage   [2]byte
 
 	Result
@@ -157,7 +157,7 @@ func (s *_Session) doRun() (errToReturn error) {
 
 	} else {
 		// Stage 0.0: Recv Hello1 from Initiator
-		var chosenVersion byte
+		var chosenVersion _Version
 		{
 			s.Stage = [2]byte{0x0, 0x0}
 
