@@ -1,113 +1,75 @@
+//go:build test
+
 package handshake_test
 
 import (
 	"context"
 	"kstack"
-	kc "kstack/crypto"
-	"kstack/internal"
+	"kstack/internal/mock"
+	nego "kstack/negotiator"
 	"kstack/negotiator/core"
-	"kstack/negotiator/handshake"
-	"kstack/peer"
-	mrand "math/rand"
+	"ktest"
+	kfake "ktest/fake"
 	"net"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-type Party struct {
-	ID   peer.ID
-	Pub  kc.PubKey
-	Priv kc.PrivKey
-}
+type Party struct{ mock.Party }
 
-func (p Party) NegotiateOn(conn kstack.IConn, initiator bool, passCode core.PassCode) error {
-	var store = new(Store)
-	var oopt core.OutboundOption
-	if initiator {
-		oopt.PassCode = passCode
-	} else {
-		store.PassCode = passCode
-	}
-	ctx := context.Background()
-	cfg := &core.Config{
+func (p Party) asNegotiator(store core.IStore) nego.INegotiator {
+	return nego.New(core.Config{
 		LocalID:  p.ID,
 		LocalKey: p.Priv,
-	}
-	var err error
-	if initiator {
-		_, err = handshake.Initiate(ctx, cfg, oopt, store, conn)
-	} else {
-		_, err = handshake.Respond(ctx, cfg, store, conn)
-	}
-	return err
+	}, store)
 }
 
-func makeParty(seed int64) Party {
-	rng := mrand.New(mrand.NewSource(seed))
-	priv, pub, _ := kc.GenerateEd25519Key(rng)
-	id, _ := peer.IDFromPublicKey(pub)
-	return Party{id, pub, priv}
+func (p Party) Out(conn kstack.IConn, store core.IStore, oopt core.OutboundOption) (kstack.IConn, error) {
+	n := p.asNegotiator(store)
+	return n.HandleOutbound(context.Background(), conn, oopt)
 }
 
-var A, B = makeParty(42), makeParty(43)
+func (p Party) In(conn kstack.IConn, store core.IStore) (kstack.IConn, error) {
+	n := p.asNegotiator(store)
+	return n.HandleInbound(context.Background(), conn)
 
-type Conn struct {
-	net.Conn
-	remotePeer peer.ID
 }
 
-// Addr implements internal.IConn.
-func (*Conn) Addr() internal.IAddr { panic("unimplemented") }
-
-// DiedCh implements internal.IConn.
-func (*Conn) DiedCh() <-chan struct{} { panic("unimplemented") }
-
-// Family implements internal.IConn.
-func (*Conn) Family() internal.Family { panic("unimplemented") }
-
-func (c *Conn) RemoteID() peer.ID { return c.remotePeer }
+var A, B = Party{mock.NewParty(42)}, Party{mock.NewParty(43)}
 
 func ConnPair() (initiator kstack.IConn, responder kstack.IConn) {
-	l, _ := net.Listen("tcp4", ":0")
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer l.Close()
-		c, _ := l.Accept()
-		responder = &Conn{c, ""}
-	}()
-	c, _ := net.Dial("tcp4", l.Addr().String())
-	initiator = &Conn{c, ""}
-	wg.Wait()
-	return
+	return ktest.TcpPair(func(c net.Conn, initiator bool) kstack.IConn { return kstack.WrapTransport(c, kstack.WrapOption{}) })
 }
 
-type Store struct {
-	PassCode core.PassCode
-}
+type Store struct{ PassCode core.PassCode }
 
 func (s *Store) GetPassCode() core.PassCode { return s.PassCode }
 
 func Test_Handshake_FirstTime(t *testing.T) {
-	ci, cr := ConnPair()
-	defer ci.Close()
-	defer cr.Close()
+	cA, cB := ConnPair()
+	defer cA.Close()
+	defer cB.Close()
 	passCode := core.PassCode("abcd")
-	var wg sync.WaitGroup
-	wg.Add(2)
-	var errA, errB error
-	go func() {
-		defer wg.Done()
-		errA = A.NegotiateOn(ci, true, passCode)
-		require.ErrorIs(t, errA, nil)
-	}()
-	go func() {
-		defer wg.Done()
-		errB = B.NegotiateOn(cr, false, passCode)
-		require.ErrorIs(t, errB, nil)
-	}()
-	wg.Wait()
+
+	scope := ktest.Scope()
+
+	testDataA, testDataB := kfake.Bytes(16), kfake.Bytes(16)
+
+	scope.Go(func() {
+		conn, err := A.Out(cA, nil, core.OutboundOption{PassCode: passCode})
+		require.ErrorIs(t, err, nil)
+		ktest.RequireWriteSuccess(t, conn, testDataA[:])
+		ktest.RequireReadEqual(t, conn, testDataB[:])
+
+	})
+
+	scope.Go(func() {
+		conn, err := B.In(cB, &Store{passCode})
+		require.ErrorIs(t, err, nil)
+		ktest.RequireReadEqual(t, conn, testDataA[:])
+		ktest.RequireWriteSuccess(t, conn, testDataB[:])
+	})
+
+	scope.Wait()
 }
