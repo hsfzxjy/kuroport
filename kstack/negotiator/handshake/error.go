@@ -8,7 +8,7 @@ import (
 type _Error struct {
 	Version   _Version
 	Initiator bool
-	Stage     [2]byte
+	Stage     _Stage
 	Wrapped   error
 }
 

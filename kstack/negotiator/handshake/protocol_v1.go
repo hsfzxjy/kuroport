@@ -44,14 +44,14 @@ func (p _ProtocolV1) HandleInitiator(s *_Session) error {
 		return err
 	}
 	// Stage 1.0: Send Ephemeral Key to Responder
-	s.Stage = [2]byte{0x1, 0x0}
+	s.Stage.Set(1, 0)
 	if err := s.rw.EncryptAndWriteMessage(nil, hs); err != nil {
 		return err
 	}
 
 	// Stage 1.1: Recv Remote ID from Responder
 	{
-		s.Stage = [2]byte{0x1, 0x1}
+		s.Stage.Set(1, 1)
 
 		var remotePayload _V1_Payload
 		if err := s.rw.ReadAndDecryptMessage(&remotePayload, hs); err != nil {
@@ -66,7 +66,7 @@ func (p _ProtocolV1) HandleInitiator(s *_Session) error {
 
 	// Stage 2.0: Send Local ID to Responder
 	{
-		s.Stage = [2]byte{0x2, 0x0}
+		s.Stage.Set(2, 0)
 
 		var localPayload _V1_Payload
 
@@ -80,7 +80,7 @@ func (p _ProtocolV1) HandleInitiator(s *_Session) error {
 	}
 
 	// Stage 2.1: Recv Confirmation from Responder
-	s.Stage = [2]byte{0x2, 0x1}
+	s.Stage.Set(2, 1)
 	if err := s.rw.ReadMessage(nil); err != nil {
 		return err
 	}
@@ -100,14 +100,14 @@ func (p _ProtocolV1) HandleResponder(s *_Session) error {
 	}
 
 	// Stage 1.0: Recv Ephemeral Key from Initiator
-	s.Stage = [2]byte{0x1, 0x0}
+	s.Stage.Set(1, 0)
 	if err := s.rw.ReadAndDecryptMessage(nil, hs); err != nil {
 		return err
 	}
 
 	// Stage 1.1: Send Local ID to Initiator
 	{
-		s.Stage = [2]byte{0x1, 0x1}
+		s.Stage.Set(1, 1)
 
 		var payload _V1_Payload
 		err = payload.Seal(localID, s.cfg.LocalKey, dhkey.Public)
@@ -121,7 +121,7 @@ func (p _ProtocolV1) HandleResponder(s *_Session) error {
 
 	// Stage 2.0 & 2.1: Recv Remote ID & Send Confirmation
 	{
-		s.Stage = [2]byte{0x2, 0x0}
+		s.Stage.Set(2, 0)
 
 		var payload _V1_Payload
 		if err := s.rw.ReadAndDecryptMessage(&payload, hs); err != nil {
@@ -133,7 +133,7 @@ func (p _ProtocolV1) HandleResponder(s *_Session) error {
 		}
 		s.RemoteID = remoteId
 
-		s.Stage = [2]byte{0x2, 0x1}
+		s.Stage.Set(2, 1)
 		if err := s.rw.WriteMessage(nil); err != nil {
 			return err
 		}

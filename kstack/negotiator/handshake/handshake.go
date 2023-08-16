@@ -21,6 +21,12 @@ type Result struct {
 	RW            rw.RW
 }
 
+type _Stage [2]byte
+
+func (s *_Stage) Set(a, b byte) {
+	*s = _Stage{a, b}
+}
+
 type _Session struct {
 	conn      kstack.IConn
 	initiator bool
@@ -31,7 +37,7 @@ type _Session struct {
 
 	Error   error
 	Version _Version
-	Stage   [2]byte
+	Stage   _Stage
 
 	Result
 }
@@ -122,7 +128,7 @@ func (s *_Session) doRun() (errToReturn error) {
 	if s.initiator {
 		// Stage 0.0: Send Hello1 to Responder
 		{
-			s.Stage = [2]byte{0x0, 0x0}
+			s.Stage.Set(0, 0)
 
 			hello1.Pack(true)
 			if err := s.rw.WriteMessage(&hello1); err != nil {
@@ -132,7 +138,7 @@ func (s *_Session) doRun() (errToReturn error) {
 
 		// Stage 0.1: Recv Resp1 from Responder
 		{
-			s.Stage = [2]byte{0x0, 0x1}
+			s.Stage.Set(0, 1)
 
 			if err := s.rw.ReadMessage(&resp1); err != nil {
 				return err
@@ -159,7 +165,7 @@ func (s *_Session) doRun() (errToReturn error) {
 		// Stage 0.0: Recv Hello1 from Initiator
 		var chosenVersion _Version
 		{
-			s.Stage = [2]byte{0x0, 0x0}
+			s.Stage.Set(0, 0)
 
 			if err := s.rw.ReadMessage(&hello1); err != nil {
 				return err
@@ -179,7 +185,7 @@ func (s *_Session) doRun() (errToReturn error) {
 
 		// Stage 0.1: Send Resp1 to Initiator
 		{
-			s.Stage = [2]byte{0x0, 0x1}
+			s.Stage.Set(0, 1)
 
 			var resp1 = _Resp1_Payload{
 				UseEncryption: true,
