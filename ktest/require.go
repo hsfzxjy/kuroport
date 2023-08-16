@@ -3,6 +3,7 @@
 package ktest
 
 import (
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,4 +21,16 @@ func RequireAllNotEqual[T any](t *testing.T, values []T) {
 			require.NotEqualf(t, values[i], values[j], "values[%d] == values[%d]", i, j)
 		}
 	}
+}
+
+func RequireWriteSuccess(t *testing.T, w io.Writer, buf []byte) {
+	_, err := w.Write(buf)
+	require.ErrorIs(t, err, nil)
+}
+
+func RequireReadEqual(t *testing.T, r io.Reader, expected []byte) {
+	var buf = make([]byte, len(expected))
+	_, err := io.ReadFull(r, buf)
+	require.ErrorIs(t, err, nil)
+	require.Equal(t, buf, expected)
 }
