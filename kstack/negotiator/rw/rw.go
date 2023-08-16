@@ -47,14 +47,6 @@ func (rw *RW) ReadNextMsgInsecure(buf []byte) error {
 }
 
 func (rw *RW) WriteMsgInsecure(data []byte) error {
-	for {
-		n, err := rw.conn.Write(data)
-		if err != nil {
-			return err
-		}
-		data = data[n:]
-		if len(data) == 0 {
-			return nil
-		}
-	}
+	_, err := rw.conn.Write(data)
+	return err
 }
