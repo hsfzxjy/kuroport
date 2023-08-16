@@ -96,21 +96,23 @@ func (s *_Session) run(ctx context.Context) error {
 		case <-ctx.Done():
 			canceled = true
 		}
-		conn.Close()
 	}()
 	err := s.doRun()
 	doneCh <- struct{}{}
 	wg.Wait()
 	if canceled {
-		return ctx.Err()
-	}
-	if err != nil {
-		return _Error{
+		err = ctx.Err()
+	} else if err != nil {
+		err = _Error{
 			Version:   s.Version,
 			Initiator: s.initiator,
 			Stage:     s.Stage,
 			Wrapped:   err,
 		}
+	}
+	if err != nil {
+		conn.Close()
+		return err
 	}
 	return nil
 }
