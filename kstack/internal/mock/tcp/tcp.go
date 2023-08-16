@@ -7,6 +7,7 @@ import (
 	"kservice"
 	"kstack"
 	"kstack/internal"
+	"ktest"
 	ku "kutil"
 	"net"
 	"sync/atomic"
@@ -161,4 +162,18 @@ func (d *_NotifiableDialer) DialAddr(ctx context.Context, addr kstack.IAddr) (ks
 		return nil, err
 	}
 	return newTransport(c), nil
+}
+
+type ConnPair struct {
+	A, B kstack.IConn
+}
+
+func (p *ConnPair) Close() {
+	p.A.Close()
+	p.B.Close()
+}
+
+func Pair() *ConnPair {
+	A, B := ktest.TcpPair(func(c net.Conn, initiator bool) kstack.IConn { return kstack.WrapTransport(c, kstack.WrapOption{}) })
+	return &ConnPair{A, B}
 }
