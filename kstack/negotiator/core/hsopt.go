@@ -1,5 +1,5 @@
 package core
 
-type OutboundOption struct {
+type HSOpt struct {
 	PassCode PassCode
 }

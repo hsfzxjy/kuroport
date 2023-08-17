@@ -34,7 +34,7 @@ func Test_Handshake_FirstTime(t *testing.T) {
 		conn, err := nego.M(
 			c.A,
 			handshake.Party(A),
-			handshake.OOpt(core.OutboundOption{PassCode: passCode}))
+			handshake.HSOpt(&core.HSOpt{PassCode: passCode}))
 		require.ErrorIs(t, err, nil)
 		ktest.RequireWriteSuccess(t, conn, testDataA[:])
 		ktest.RequireReadEqual(t, conn, testDataB[:])

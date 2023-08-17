@@ -28,7 +28,7 @@ func _Test_MI_Stage00_BadHello1(
 				s.Rw.WriteMessage(&hello1)
 
 				return s.Rw.ReadMessage(nil)
-			}, handshake.OOpt())
+			}, handshake.HSOpt(nil))
 		require.ErrorIs(t, err, io.EOF)
 	})
 
@@ -92,7 +92,7 @@ func _Test_MR_Stage01_BadResp1(
 	scope := ktest.Scope()
 
 	scope.Go(func() {
-		_, err := handshake.M(c.A, handshake.NormalRun, handshake.OOpt())
+		_, err := handshake.M(c.A, handshake.NormalRun, handshake.HSOpt(nil))
 		require.ErrorIs(t, err, initErr)
 	})
 

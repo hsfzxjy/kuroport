@@ -13,7 +13,7 @@ func (_ProtocolV1) cryptoSuite(s *_Session) (dhkey noise.DHKey, hs *noise.Handsh
 	if s.Rw.RemoteID().IsEmpty() {
 		var psk []byte
 		if s.Initiator {
-			psk = s.OOpt.PassCode
+			psk = s.HSOpt.PassCode
 		} else {
 			psk = s.Store.GetPassCode()
 		}

@@ -10,13 +10,13 @@ import (
 )
 
 type Config = core.Config
-type OutboundOption = core.OutboundOption
+type HSOpt = core.HSOpt
 type PassCode = core.PassCode
 type IStore = core.IStore
 
 type INegotiator interface {
 	HandleInbound(ctx context.Context, conn kstack.IConn) (kstack.IConn, error)
-	HandleOutbound(ctx context.Context, conn kstack.IConn, oopt OutboundOption) (kstack.IConn, error)
+	HandleOutbound(ctx context.Context, conn kstack.IConn, oopt HSOpt) (kstack.IConn, error)
 }
 
 type _Negotiator struct {
@@ -39,8 +39,8 @@ func (n *_Negotiator) HandleInbound(ctx context.Context, conn internal.IConn) (i
 	return nc.New(&r), nil
 }
 
-func (n *_Negotiator) HandleOutbound(ctx context.Context, conn internal.IConn, oopt core.OutboundOption) (internal.IConn, error) {
-	r, err := handshake.Initiate(ctx, &n.cfg, oopt, n.store, conn)
+func (n *_Negotiator) HandleOutbound(ctx context.Context, conn internal.IConn, hsopt core.HSOpt) (internal.IConn, error) {
+	r, err := handshake.Initiate(ctx, &n.cfg, hsopt, n.store, conn)
 	if err != nil {
 		return nil, err
 	}

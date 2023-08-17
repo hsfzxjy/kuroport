@@ -35,11 +35,11 @@ func Party(party mock.Party) MOpt {
 	}
 }
 
-func OOpt(oopt ...core.OutboundOption) MOpt {
+func HSOpt(hsopt *core.HSOpt) MOpt {
 	return func(s *MSession) {
 		s.Initiator = true
-		if len(oopt) > 0 {
-			s.OOpt = oopt[0]
+		if hsopt != nil {
+			s.HSOpt = *hsopt
 		}
 	}
 }

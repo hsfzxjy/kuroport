@@ -31,7 +31,7 @@ type _Session struct {
 	Conn      kstack.IConn
 	Initiator bool
 	Cfg       *core.Config
-	OOpt      core.OutboundOption
+	HSOpt     core.HSOpt
 	Store     core.IStore
 	Rw        _RW
 
@@ -46,7 +46,7 @@ var sessionPool = sync.Pool{
 	New: func() any { return new(_Session) },
 }
 
-func Initiate(ctx context.Context, config *core.Config, oopt core.OutboundOption, store core.IStore, conn kstack.IConn) (Result, error) {
+func Initiate(ctx context.Context, config *core.Config, oopt core.HSOpt, store core.IStore, conn kstack.IConn) (Result, error) {
 	s := sessionPool.Get().(*_Session)
 	defer func() {
 		*s = _Session{}
@@ -55,7 +55,7 @@ func Initiate(ctx context.Context, config *core.Config, oopt core.OutboundOption
 	s.Conn = conn
 	s.Initiator = true
 	s.Cfg = config
-	s.OOpt = oopt
+	s.HSOpt = oopt
 	s.Store = store
 	err := s.run(ctx)
 	if err != nil {
