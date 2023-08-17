@@ -118,3 +118,27 @@ func Test_MR_Stage01_NoEncryption(t *testing.T) {
 		}
 	}, handshake.ErrEncryptionRequired)
 }
+
+func Test_MR_Stage01_BadVersion(t *testing.T) {
+	for _, c := range []struct {
+		name      string
+		encrypted bool
+		version   byte
+		initErr   error
+	}{
+		{"encrypted_v00", true, 0x00, handshake.ErrUnsupportedVersion},
+		{"encrypted_vff", true, 0xff, handshake.ErrUnsupportedVersion},
+		{"plaintext_v00", false, 0x00, handshake.ErrUnsupportedVersion},
+		{"plaintext_vff", false, 0xff, handshake.ErrUnsupportedVersion},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			_Test_MR_Stage01_BadResp1(t, func(hello *handshake.Hello1_Payload) *handshake.Resp1_Payload {
+				return &handshake.Resp1_Payload{
+					ChosenVersion: handshake.Version(c.version),
+					UseEncryption: c.encrypted,
+				}
+			}, c.initErr)
+		})
+	}
+
+}

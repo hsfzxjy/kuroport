@@ -12,6 +12,7 @@ import (
 
 type Hello1_Payload = _Hello1_Payload
 type Resp1_Payload = _Resp1_Payload
+type Version = _Version
 
 type MSession struct {
 	_Session
