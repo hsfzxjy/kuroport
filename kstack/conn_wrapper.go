@@ -62,6 +62,10 @@ func (*_ConnWrapper[C]) RemoteID() peer.ID {
 	return ""
 }
 
+func (*_ConnWrapper[C]) IsSecure() bool {
+	return false
+}
+
 func (w *_ConnWrapper[C]) Read(p []byte) (n int, err error) {
 	n, err = w.rawConn.Read(p)
 	if err != nil && w.CloseOnError {

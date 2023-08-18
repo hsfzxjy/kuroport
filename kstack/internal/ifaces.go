@@ -38,6 +38,7 @@ type IConn interface {
 	Addr() IAddr
 	DiedCh() <-chan struct{}
 	RemoteID() peer.ID
+	IsSecure() bool
 }
 
 type IUnidentifiedDevice interface {
