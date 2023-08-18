@@ -107,13 +107,13 @@ func (_ProtocolV1) responder_Stage_1_1_Onwards(s *_Session, cs _CryptoSuite) err
 		if err := s.Rw.ReadAndDecryptMessage(&initPayload, cs.hs); err != nil {
 			return err
 		}
-		remoteId, err := initPayload.Verify(cs.RemoteStatic(), s.UseAuth)
+		remoteID, err := initPayload.Verify(cs.RemoteStatic(), s.UseAuth)
 		if err != nil {
 			return err
 		}
 
 		initMsg = core.InitiatorMsg{
-			InitiatorID:   remoteId,
+			InitiatorID:   remoteID,
 			HandshakeInfo: s.HandshakeInfo,
 			Expiration:    initPayload.Expiration,
 		}
@@ -204,17 +204,17 @@ func (_ProtocolV1) initiator_Stage_1_1_Onwards(s *_Session, cs _CryptoSuite) err
 		if err := s.Rw.ReadAndDecryptMessage(&respPayload, cs.hs); err != nil {
 			return err
 		}
-		remoteId, err := respPayload.Verify(cs.RemoteStatic(), s.UseAuth)
+		remoteID, err := respPayload.Verify(cs.RemoteStatic(), s.UseAuth)
 		if err != nil {
 			return err
 		}
 
-		if !s.FirstTime && s.HSOpt.RemoteID != remoteId {
+		if !s.FirstTime && s.HSOpt.RemoteID != remoteID {
 			return ErrAuthFailed
 		}
 
 		respMsg = core.ResponderMsg{
-			ResponderID:      remoteId,
+			ResponderID:      remoteID,
 			HandshakeInfo:    s.HandshakeInfo,
 			ReplyToInitiator: respPayload.ReplyToInitiator,
 		}
