@@ -36,7 +36,7 @@ type _Session struct {
 	Initiator bool
 	Cfg       *core.Config
 	HSOpt     core.HSOpt
-	Store     core.IStore
+	Model     core.IModel
 	Rw        _RW
 
 	Error   error
@@ -52,7 +52,7 @@ var sessionPool = sync.Pool{
 	New: func() any { return new(_Session) },
 }
 
-func Initiate(ctx context.Context, config *core.Config, hsopt core.HSOpt, store core.IStore, conn kstack.IConn) (Result, error) {
+func Initiate(ctx context.Context, config *core.Config, hsopt core.HSOpt, model core.IModel, conn kstack.IConn) (Result, error) {
 	s := sessionPool.Get().(*_Session)
 	defer func() {
 		*s = _Session{}
@@ -62,7 +62,7 @@ func Initiate(ctx context.Context, config *core.Config, hsopt core.HSOpt, store 
 	s.Initiator = true
 	s.Cfg = config
 	s.HSOpt = hsopt
-	s.Store = store
+	s.Model = model
 	err := s.run(ctx)
 	if err != nil {
 		return Result{}, err
@@ -70,7 +70,7 @@ func Initiate(ctx context.Context, config *core.Config, hsopt core.HSOpt, store 
 	return s.Result, nil
 }
 
-func Respond(ctx context.Context, config *core.Config, store core.IStore, conn kstack.IConn) (Result, error) {
+func Respond(ctx context.Context, config *core.Config, model core.IModel, conn kstack.IConn) (Result, error) {
 	s := sessionPool.Get().(*_Session)
 	defer func() {
 		*s = _Session{}
@@ -79,7 +79,7 @@ func Respond(ctx context.Context, config *core.Config, store core.IStore, conn k
 	s.Conn = conn
 	s.Initiator = false
 	s.Cfg = config
-	s.Store = store
+	s.Model = model
 	err := s.run(ctx)
 	if err != nil {
 		return Result{}, err

@@ -67,7 +67,7 @@ func NegotiatedResponder(m ResponderMsg) NegotiatedPeer {
 	}
 }
 
-type IStore interface {
+type IModel interface {
 	GetPassCode() PassCode
 	HandleInitiatorMsg(m InitiatorMsg) (r ReplyToInitiator, err error)
 	HandleResponderMsg(m ResponderMsg) (err error)

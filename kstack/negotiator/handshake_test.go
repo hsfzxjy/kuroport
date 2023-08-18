@@ -184,7 +184,7 @@ func _Test_Handshake_FirstTime(t *testing.T, tc testCase) {
 				SecLevel:  tc.se.iLevel,
 				AuthLevel: tc.au.iLevel,
 			}),
-			handshake.Store(&Store{}))
+			handshake.Model(&Store{}))
 		require.ErrorIs(t, err, tc.err.i)
 		if err == nil {
 			require.Equal(t, B.ID, conn.RemoteID())
@@ -203,7 +203,7 @@ func _Test_Handshake_FirstTime(t *testing.T, tc testCase) {
 				AuthCap: tc.au.rCap,
 			}),
 			handshake.Party(B),
-			handshake.Store(&Store{passCode}))
+			handshake.Model(&Store{passCode}))
 		require.ErrorIs(t, err, tc.err.r)
 		if err == nil {
 			require.Equal(t, A.ID, conn.RemoteID())

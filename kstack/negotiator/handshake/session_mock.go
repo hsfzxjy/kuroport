@@ -53,9 +53,9 @@ func HSOpt(hsopt *core.HSOpt) MOpt {
 	}
 }
 
-func Store(store core.IStore) MOpt {
+func Model(model core.IModel) MOpt {
 	return func(s *MSession) {
-		s.Store = store
+		s.Model = model
 	}
 }
 

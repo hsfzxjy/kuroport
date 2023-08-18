@@ -35,7 +35,7 @@ func (_ProtocolV1) cryptoSuite(s *_Session) (cs _CryptoSuite, err error) {
 		if s.Initiator {
 			psk = s.HSOpt.PassCode
 		} else {
-			psk = s.Store.GetPassCode()
+			psk = s.Model.GetPassCode()
 		}
 		prologue = make([]byte, 1+len(psk))
 		copy(prologue[1:], psk)
@@ -88,7 +88,7 @@ func (p _ProtocolV1) HandleResponderCleartext(s *_Session) error {
 		if err := s.Rw.ReadMessage(&passCode); err != nil {
 			return err
 		}
-		if !slices.Equal(passCode, s.Store.GetPassCode()) {
+		if !slices.Equal(passCode, s.Model.GetPassCode()) {
 			return ErrAuthFailed
 		}
 	}
@@ -118,7 +118,7 @@ func (_ProtocolV1) responder_Stage_1_1_Onwards(s *_Session, cs _CryptoSuite) err
 			Expiration:    initPayload.Expiration,
 		}
 
-		reply, err = s.Store.HandleInitiatorMsg(initMsg)
+		reply, err = s.Model.HandleInitiatorMsg(initMsg)
 		if err != nil {
 			return err
 		}
@@ -145,7 +145,7 @@ func (_ProtocolV1) responder_Stage_1_1_Onwards(s *_Session, cs _CryptoSuite) err
 		return err
 	}
 
-	if err := s.Store.HandleNegotiatedPeer(core.NegotiatedInitiator(initMsg, reply)); err != nil {
+	if err := s.Model.HandleNegotiatedPeer(core.NegotiatedInitiator(initMsg, reply)); err != nil {
 		return err
 	}
 	s.RemoteID = initMsg.InitiatorID
@@ -219,7 +219,7 @@ func (_ProtocolV1) initiator_Stage_1_1_Onwards(s *_Session, cs _CryptoSuite) err
 			ReplyToInitiator: respPayload.ReplyToInitiator,
 		}
 
-		if err := s.Store.HandleResponderMsg(respMsg); err != nil {
+		if err := s.Model.HandleResponderMsg(respMsg); err != nil {
 			return err
 		}
 
@@ -229,7 +229,7 @@ func (_ProtocolV1) initiator_Stage_1_1_Onwards(s *_Session, cs _CryptoSuite) err
 		}
 	}
 
-	if err := s.Store.HandleNegotiatedPeer(core.NegotiatedResponder(respMsg)); err != nil {
+	if err := s.Model.HandleNegotiatedPeer(core.NegotiatedResponder(respMsg)); err != nil {
 		return err
 	}
 	s.RemoteID = respMsg.ResponderID
