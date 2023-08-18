@@ -31,6 +31,10 @@ func (rw *RW) Init(conn kstack.IConn) {
 	rw.insecureReader = bufio.NewReader(conn)
 }
 
+func (rw *RW) Read(p []byte) (int, error) {
+	return rw.insecureReader.Read(p)
+}
+
 func (rw *RW) ReadNextInsecureMsgLen() (int, error) {
 	buflen := rw.buflen[:]
 	_, err := io.ReadFull(rw.insecureReader, buflen)

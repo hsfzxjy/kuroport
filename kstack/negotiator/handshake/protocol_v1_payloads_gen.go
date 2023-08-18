@@ -7,7 +7,66 @@ import (
 )
 
 // MarshalMsg implements msgp.Marshaler
-func (z *_V1_Payload) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *_V1_InitiatorMsg_Payload) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 2
+	// array header, size 2
+	o = append(o, 0x92, 0x92)
+	o = msgp.AppendBytes(o, z._V1_PeerInfo_Payload.PeerID)
+	o = msgp.AppendBytes(o, z._V1_PeerInfo_Payload.Sig)
+	o = msgp.AppendTime(o, z.Expiration)
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *_V1_InitiatorMsg_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "_V1_PeerInfo_Payload")
+		return
+	}
+	if zb0002 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+		return
+	}
+	z._V1_PeerInfo_Payload.PeerID, bts, err = msgp.ReadBytesBytes(bts, z._V1_PeerInfo_Payload.PeerID)
+	if err != nil {
+		err = msgp.WrapError(err, "_V1_PeerInfo_Payload", "PeerID")
+		return
+	}
+	z._V1_PeerInfo_Payload.Sig, bts, err = msgp.ReadBytesBytes(bts, z._V1_PeerInfo_Payload.Sig)
+	if err != nil {
+		err = msgp.WrapError(err, "_V1_PeerInfo_Payload", "Sig")
+		return
+	}
+	z.Expiration, bts, err = msgp.ReadTimeBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Expiration")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *_V1_InitiatorMsg_Payload) Msgsize() (s int) {
+	s = 1 + 1 + msgp.BytesPrefixSize + len(z._V1_PeerInfo_Payload.PeerID) + msgp.BytesPrefixSize + len(z._V1_PeerInfo_Payload.Sig) + msgp.TimeSize
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *_V1_PeerInfo_Payload) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// array header, size 2
 	o = append(o, 0x92)
@@ -17,7 +76,7 @@ func (z *_V1_Payload) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *_V1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *_V1_PeerInfo_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
@@ -43,7 +102,70 @@ func (z *_V1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *_V1_Payload) Msgsize() (s int) {
+func (z *_V1_PeerInfo_Payload) Msgsize() (s int) {
 	s = 1 + msgp.BytesPrefixSize + len(z.PeerID) + msgp.BytesPrefixSize + len(z.Sig)
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *_V1_ResponderMsg_Payload) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// array header, size 2
+	// array header, size 2
+	o = append(o, 0x92, 0x92)
+	o = msgp.AppendBytes(o, z._V1_PeerInfo_Payload.PeerID)
+	o = msgp.AppendBytes(o, z._V1_PeerInfo_Payload.Sig)
+	o, err = z.ReplyToInitiator.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "ReplyToInitiator")
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *_V1_ResponderMsg_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var zb0001 uint32
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err)
+		return
+	}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+		return
+	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "_V1_PeerInfo_Payload")
+		return
+	}
+	if zb0002 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0002}
+		return
+	}
+	z._V1_PeerInfo_Payload.PeerID, bts, err = msgp.ReadBytesBytes(bts, z._V1_PeerInfo_Payload.PeerID)
+	if err != nil {
+		err = msgp.WrapError(err, "_V1_PeerInfo_Payload", "PeerID")
+		return
+	}
+	z._V1_PeerInfo_Payload.Sig, bts, err = msgp.ReadBytesBytes(bts, z._V1_PeerInfo_Payload.Sig)
+	if err != nil {
+		err = msgp.WrapError(err, "_V1_PeerInfo_Payload", "Sig")
+		return
+	}
+	bts, err = z.ReplyToInitiator.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "ReplyToInitiator")
+		return
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *_V1_ResponderMsg_Payload) Msgsize() (s int) {
+	s = 1 + 1 + msgp.BytesPrefixSize + len(z._V1_PeerInfo_Payload.PeerID) + msgp.BytesPrefixSize + len(z._V1_PeerInfo_Payload.Sig) + z.ReplyToInitiator.Msgsize()
 	return
 }

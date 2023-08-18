@@ -34,6 +34,14 @@ func _NewSecureConn(r *handshake.Result) *_SecureConn {
 	return c
 }
 
+func (c *_SecureConn) RemoteID() peer.ID {
+	return c.remoteID
+}
+
+func (c *_SecureConn) IsSecure() bool {
+	return true
+}
+
 func (c *_SecureConn) Read(buf []byte) (int, error) {
 	c.rLock.Lock()
 	defer c.rLock.Unlock()

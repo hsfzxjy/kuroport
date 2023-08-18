@@ -16,12 +16,12 @@ type _RW struct {
 	rw.RW
 	wbuf []byte
 
-	setCipherStates func(cs1, cs2 *noise.CipherState)
+	*_Session
 }
 
 func (rw *_RW) Init(s *_Session, bufSize int) (dispose ku.F) {
 	rw.RW.Init(s.Conn)
-	rw.setCipherStates = s.setCipherStates
+	rw._Session = s
 	buf := pool.Get(bufSize)
 	rw.wbuf = buf
 	return func() {
@@ -52,6 +52,9 @@ func (rw *_RW) ReadMessage(um msgp.Unmarshaler) error {
 }
 
 func (rw *_RW) ReadAndDecryptMessage(um msgp.Unmarshaler, hs *noise.HandshakeState) error {
+	if !rw.UseEncryption {
+		return rw.ReadMessage(um)
+	}
 	n, err := rw.ReadNextInsecureMsgLen()
 	if err != nil {
 		return err
@@ -103,6 +106,9 @@ func (rw *_RW) WriteMessage(m msgp.Marshaler) error {
 }
 
 func (rw *_RW) EncryptAndWriteMessage(m msgp.MarshalSizer, hs *noise.HandshakeState) error {
+	if !rw.UseEncryption {
+		return rw.WriteMessage(m)
+	}
 	var payload []byte
 	if m != nil {
 		var err error

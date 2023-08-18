@@ -6,8 +6,8 @@ import (
 )
 
 func New(r *handshake.Result) kstack.IConn {
-	if r.UseEncryption {
+	if r.IsEncrypted() {
 		return _NewSecureConn(r)
 	}
-	panic("unimplemented")
+	return _NewRawConn(r)
 }

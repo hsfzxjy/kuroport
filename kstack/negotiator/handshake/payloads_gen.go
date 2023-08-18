@@ -9,10 +9,20 @@ import (
 // MarshalMsg implements msgp.Marshaler
 func (z *_Hello1_Payload) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 4
+	o = append(o, 0x94)
 	o = msgp.AppendBytes(o, (z.Versions)[:])
-	o = msgp.AppendBool(o, z.ICanEncrypt)
+	o, err = z.SecLevel.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "SecLevel")
+		return
+	}
+	o, err = z.AuthLevel.MarshalMsg(o)
+	if err != nil {
+		err = msgp.WrapError(err, "AuthLevel")
+		return
+	}
+	o = msgp.AppendBool(o, z.FirstTime)
 	return
 }
 
@@ -24,8 +34,8 @@ func (z *_Hello1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 4 {
+		err = msgp.ArrayError{Wanted: 4, Got: zb0001}
 		return
 	}
 	bts, err = msgp.ReadExactBytes(bts, (z.Versions)[:])
@@ -33,9 +43,19 @@ func (z *_Hello1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "Versions")
 		return
 	}
-	z.ICanEncrypt, bts, err = msgp.ReadBoolBytes(bts)
+	bts, err = z.SecLevel.UnmarshalMsg(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "ICanEncrypt")
+		err = msgp.WrapError(err, "SecLevel")
+		return
+	}
+	bts, err = z.AuthLevel.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "AuthLevel")
+		return
+	}
+	z.FirstTime, bts, err = msgp.ReadBoolBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "FirstTime")
 		return
 	}
 	o = bts
@@ -44,17 +64,18 @@ func (z *_Hello1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *_Hello1_Payload) Msgsize() (s int) {
-	s = 1 + msgp.ArrayHeaderSize + (4 * (msgp.ByteSize)) + msgp.BoolSize
+	s = 1 + msgp.ArrayHeaderSize + (4 * (msgp.ByteSize)) + z.SecLevel.Msgsize() + z.AuthLevel.Msgsize() + msgp.BoolSize
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z _Resp1_Payload) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 2
-	o = append(o, 0x92)
+	// array header, size 3
+	o = append(o, 0x93)
 	o = msgp.AppendByte(o, byte(z.ChosenVersion))
 	o = msgp.AppendBool(o, z.UseEncryption)
+	o = msgp.AppendBool(o, z.UseAuth)
 	return
 }
 
@@ -66,8 +87,8 @@ func (z *_Resp1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 2 {
-		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
+	if zb0001 != 3 {
+		err = msgp.ArrayError{Wanted: 3, Got: zb0001}
 		return
 	}
 	{
@@ -84,13 +105,18 @@ func (z *_Resp1_Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "UseEncryption")
 		return
 	}
+	z.UseAuth, bts, err = msgp.ReadBoolBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "UseAuth")
+		return
+	}
 	o = bts
 	return
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z _Resp1_Payload) Msgsize() (s int) {
-	s = 1 + msgp.ByteSize + msgp.BoolSize
+	s = 1 + msgp.ByteSize + msgp.BoolSize + msgp.BoolSize
 	return
 }
 

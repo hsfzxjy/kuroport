@@ -26,5 +26,5 @@ var (
 	ErrAuthFailed         = errors.New("authentication failed")
 	ErrUnsupportedVersion = errors.New("unsupported version")
 	ErrBadFormat          = errors.New("bad format")
-	ErrEncryptionRequired = errors.New("encryption required")
+	ErrBadOption          = errors.New("bad option")
 )

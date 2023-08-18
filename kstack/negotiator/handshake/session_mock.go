@@ -28,11 +28,20 @@ func Cfg(cfg *core.Config) MOpt {
 
 func Party(party mock.Party) MOpt {
 	return func(s *MSession) {
-		s.Cfg = &core.Config{
-			LocalID:  party.ID,
-			LocalKey: party.Priv,
-		}
+		var c = s.Cfg
+		c.LocalID = party.ID
+		c.LocalKey = party.Priv
 	}
+}
+
+func I(m *MSession) {
+	m.Initiator = true
+	m.Cfg = &core.Config{}
+}
+
+func R(m *MSession) {
+	m.Initiator = false
+	m.Cfg = &core.Config{}
 }
 
 func HSOpt(hsopt *core.HSOpt) MOpt {
